@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronRight, LogOut, UserCircle, Command, Maximize2, Minimize2,
   Eye, EyeOff, Contrast, Layers, Grid3X3, Zap, TrendingUp, TrendingDown,
   CheckCircle2, XCircle, AlertCircle, Info, ArrowRight, MoreHorizontal, Filter,
-  Download, RefreshCw, ChevronLeft, Hash, Activity, Target, Briefcase, HardHat
+  Download, RefreshCw, ChevronLeft, Hash, Activity, Target, Briefcase, HardHat, Flag
 } from 'lucide-react';
 import { lightTokens, darkTokens, highContrastTokens, type DesignTokens, type ThemeMode, type DensityMode } from './design/tokens';
 import { navigationRegistry, type NavGroup, type NavEntry } from './data/navigation';
@@ -20,6 +20,11 @@ import {
   personas, widgetRegistry, initialFeedback, getWidgetsForPersona,
   type PersonaKey, type WidgetDef, type FeedbackEntry, type Persona
 } from './data/preview';
+import {
+  pipelineStages, releases, featureFlags as cicdFlags, evidenceBundles,
+  quarantinedTests, gateThresholds, regressionSuites,
+  type Release, type GateResult, type FeatureFlag, type EvidenceBundle
+} from './data/cicd';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -28,6 +33,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.tech_console': true,
   'ff.audit': true,
   'ff.preview': true,
+  'ff.cicd': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -72,6 +78,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   'alert-triangle': AlertTriangle, 'alert-circle': AlertCircle,
   'layout-dashboard': LayoutDashboard, 'file-bar-chart': FileBarChart, shield: Shield,
   'bar-chart': BarChart3, layers: Layers, database: Boxes, target: Target,
+  flag: Flag, activity: Activity,
 };
 
 function Icon({ name, size = 20, className = '' }: { name: string; size?: number; className?: string }) {
@@ -1285,6 +1292,12 @@ function TechConsoleBaseline() {
             System Audit
           </button>
           <button
+            onClick={() => navigate('/_tech/cicd')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            CI/CD & Releases
+          </button>
+          <button
             onClick={() => navigate('/preview')}
             className="px-3 py-1.5 text-sm rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 font-medium"
           >
@@ -1825,6 +1838,527 @@ function PreviewLayout() {
           onSubmit={handleSubmitFeedback}
         />
       )}
+    </div>
+  );
+}
+
+// ===== CI/CD DASHBOARD (Part 03 — Quality Gates & Release Engineering) =====
+function CICDDashboard() {
+  const [activeTab, setActiveTab] = useState<'releases' | 'pipeline' | 'flags' | 'gates' | 'evidence' | 'quarantine'>('releases');
+  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
+  const navigate = useNavigate();
+
+  const tabs = [
+    { id: 'releases', label: 'Releases', icon: 'package' },
+    { id: 'pipeline', label: 'Pipeline', icon: 'activity' },
+    { id: 'flags', label: 'Feature Flags', icon: 'flag' },
+    { id: 'gates', label: 'Gate Thresholds', icon: 'shield' },
+    { id: 'evidence', label: 'Evidence Bundles', icon: 'file-text' },
+    { id: 'quarantine', label: 'Quarantine', icon: 'alert-triangle' },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pass': case 'LIVE': case 'approved': case 'complete': case 'unchanged': case 'no-breaking': case 'empty': case 'active': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'fail': case 'ROLLED_BACK': case 'destructive': case 'changed-unapproved': case 'breaking': return 'bg-red-100 text-red-700 border-red-200';
+      case 'running': case 'DEPLOYING': case 'in-progress': case 'additive': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'pending': case 'DRAFT': case 'missing': case 'planned': return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'warn': case 'CANDIDATE': case 'STAGING_VERIFIED': case 'changed-approved': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'APPROVED': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'low': return 'bg-emerald-100 text-emerald-700';
+      case 'medium': return 'bg-amber-100 text-amber-700';
+      case 'high': return 'bg-orange-100 text-orange-700';
+      case 'critical': return 'bg-red-100 text-red-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-56 border-r border-[var(--border)] bg-[var(--sidebar-bg)] p-3 overflow-y-auto shrink-0 hidden lg:block">
+        <div className="mb-4 px-2">
+          <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">CI/CD & Releases</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-1">Part 03 · ff.cicd</p>
+        </div>
+        <nav className="space-y-1">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => { setActiveTab(t.id as any); setSelectedRelease(null); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+                activeTab === t.id
+                  ? 'bg-[var(--brand-primary)] text-white font-medium'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+              }`}
+            >
+              <Icon name={t.icon} size={16} />
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Mobile tab selector */}
+        <div className="lg:hidden mb-4">
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value as any)}
+            className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-primary)]"
+          >
+            {tabs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+
+        {/* RELEASES TAB */}
+        {activeTab === 'releases' && !selectedRelease && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Release Board</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Release lifecycle: DRAFT → CANDIDATE → STAGING_VERIFIED → APPROVED → DEPLOYING → LIVE | ROLLED_BACK</p>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Releases', value: releases.length, color: 'text-[var(--text-primary)]' },
+                { label: 'Live', value: releases.filter(r => r.status === 'LIVE').length, color: 'text-emerald-600' },
+                { label: 'In Pipeline', value: releases.filter(r => ['CANDIDATE', 'STAGING_VERIFIED', 'DEPLOYING'].includes(r.status)).length, color: 'text-blue-600' },
+                { label: 'Failed/Rolled Back', value: releases.filter(r => r.status === 'ROLLED_BACK').length, color: 'text-red-600' },
+              ].map((s, i) => (
+                <div key={i} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                  <p className="text-xs text-[var(--text-tertiary)]">{s.label}</p>
+                  <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Release List */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Release</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Version</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Parts</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Risk</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Author</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Gates</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--divider)]">
+                    {releases.map(r => {
+                      const passGates = r.gates.filter(g => g.status === 'pass').length;
+                      const totalGates = r.gates.length;
+                      return (
+                        <tr key={r.id} className="hover:bg-[var(--surface-hover)] cursor-pointer" onClick={() => setSelectedRelease(r)}>
+                          <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{r.id}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-[var(--text-primary)]">v{r.version}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1 flex-wrap">
+                              {r.parts.map(p => (
+                                <span key={p} className="text-xs px-1.5 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{p}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${getRiskColor(r.risk)}`}>{r.risk}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium border ${getStatusColor(r.status)}`}>{r.status}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{r.author}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-1.5 bg-[var(--surface-hover)] rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(passGates / Math.max(totalGates, 1)) * 100}%` }} />
+                              </div>
+                              <span className="text-xs text-[var(--text-tertiary)]">{passGates}/{totalGates}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* RELEASE DETAIL */}
+        {activeTab === 'releases' && selectedRelease && (
+          <div className="space-y-6">
+            <button onClick={() => setSelectedRelease(null)} className="flex items-center gap-2 text-sm text-[var(--brand-primary)] hover:underline">
+              <ChevronLeft size={16} /> Back to releases
+            </button>
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-[var(--text-primary)]">{selectedRelease.id}</h1>
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium border ${getStatusColor(selectedRelease.status)}`}>{selectedRelease.status}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${getRiskColor(selectedRelease.risk)}`}>{selectedRelease.risk} risk</span>
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">v{selectedRelease.version} · commit {selectedRelease.commitSha} · {selectedRelease.parts.join(', ')}</p>
+              </div>
+              {selectedRelease.status === 'STAGING_VERIFIED' && (
+                <button className="px-4 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg font-medium hover:bg-[var(--brand-primary-hover)]">
+                  Approve Release
+                </button>
+              )}
+            </div>
+
+            {/* Release Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Release Details</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-[var(--text-tertiary)]">Author</span><span className="text-[var(--text-primary)]">{selectedRelease.author}</span></div>
+                  <div className="flex justify-between"><span className="text-[var(--text-tertiary)]">Created</span><span className="text-[var(--text-primary)]">{new Date(selectedRelease.createdAt).toLocaleString()}</span></div>
+                  {selectedRelease.approvedBy && <div className="flex justify-between"><span className="text-[var(--text-tertiary)]">Approved by</span><span className="text-[var(--text-primary)]">{selectedRelease.approvedBy}</span></div>}
+                  {selectedRelease.deployedAt && <div className="flex justify-between"><span className="text-[var(--text-tertiary)]">Deployed</span><span className="text-[var(--text-primary)]">{new Date(selectedRelease.deployedAt).toLocaleString()}</span></div>}
+                </div>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Rollback Plan</h3>
+                <p className="text-sm text-[var(--text-secondary)]">{selectedRelease.rollbackPlan}</p>
+              </div>
+            </div>
+
+            {/* Gate Matrix */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Pipeline Gate Results</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {pipelineStages.map(stage => {
+                    const result = selectedRelease.gates.find(g => g.gateId === stage.id);
+                    return (
+                      <div key={stage.id} className={`px-3 py-2 rounded-lg border text-xs font-medium ${result ? getStatusColor(result.status) : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
+                        <div className="font-semibold">{stage.name}</div>
+                        <div className="text-[10px] mt-0.5">{result ? result.status.toUpperCase() : 'NOT RUN'}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="border-t border-[var(--divider)]">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Gate</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Duration</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Metrics</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--divider)]">
+                    {selectedRelease.gates.map(g => {
+                      const stage = pipelineStages.find(s => s.id === g.gateId);
+                      return (
+                        <tr key={g.gateId} className="hover:bg-[var(--surface-hover)]">
+                          <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{stage?.name || g.gateId}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium border ${getStatusColor(g.status)}`}>{g.status}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-xs text-[var(--text-secondary)] font-tabular">{g.duration}</td>
+                          <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">
+                            {g.metrics && Object.entries(g.metrics).map(([k, v]) => (
+                              <span key={k} className="mr-3"><span className="text-[var(--text-secondary)]">{k}:</span> {String(v)}</span>
+                            ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PIPELINE TAB */}
+        {activeTab === 'pipeline' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Pipeline Stages</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{pipelineStages.length} ordered stages · All mandatory · CP-CICD-01/02 enforced</p>
+            </div>
+
+            <div className="space-y-2">
+              {pipelineStages.map((stage, i) => (
+                <div key={stage.id} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] text-white flex items-center justify-center text-sm font-bold shrink-0">
+                    {stage.order}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-[var(--text-primary)]">{stage.name}</h4>
+                      {stage.mandatory && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium">MANDATORY</span>}
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">{stage.description}</p>
+                  </div>
+                  <div className="text-xs text-[var(--text-tertiary)] font-tabular shrink-0">avg {stage.avgDuration}</div>
+                  {i < pipelineStages.length - 1 && (
+                    <ChevronRight size={16} className="text-[var(--text-tertiary)] shrink-0 hidden sm:block" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Control Points */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                <Shield size={16} className="text-[var(--brand-primary)]" />
+                Protocol Control Points (CP-CICD)
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { id: 'CP-CICD-01', stage: 'VERIFY', control: 'All mandatory gates green for the commit being released', enforcement: 'BLOCK(release)' },
+                  { id: 'CP-CICD-02', stage: 'VERIFY', control: 'No destructive change to pre-existing schema objects', enforcement: 'BLOCK' },
+                  { id: 'CP-CICD-03', stage: 'APPROVE', control: 'Production release approved by someone other than the author', enforcement: 'BLOCK' },
+                  { id: 'CP-CICD-04', stage: 'MONITOR', control: 'Post-deploy health and error-rate within SLO for 30 min', enforcement: 'MONITOR' },
+                ].map(cp => (
+                  <div key={cp.id} className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border)]">
+                    <span className="text-xs font-mono font-medium text-[var(--brand-primary)] shrink-0">{cp.id}</span>
+                    <StatusChip status={cp.stage} variant="info" />
+                    <span className="text-sm text-[var(--text-primary)] flex-1">{cp.control}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 font-medium shrink-0">{cp.enforcement}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* FEATURE FLAGS TAB */}
+        {activeTab === 'flags' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Feature Flag Console</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{cicdFlags.length} flags · Per-environment defaults · Kill switch · Audit trail</p>
+            </div>
+
+            <div className="space-y-3">
+              {cicdFlags.map(flag => (
+                <div key={flag.key} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+                  <div className="p-4 flex items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-bold text-[var(--brand-primary)]">{flag.key}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{flag.partNo}</span>
+                        {flag.killSwitch && <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 font-medium">KILL SWITCH</span>}
+                      </div>
+                      <p className="text-sm text-[var(--text-secondary)] mt-1">{flag.description}</p>
+                      <p className="text-xs text-[var(--text-tertiary)] mt-1">Owner: {flag.owner} · Last changed: {flag.lastChanged}</p>
+                    </div>
+                  </div>
+                  <div className="px-4 pb-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['dev', 'staging', 'production'] as const).map(env => (
+                        <div key={env} className="p-2 rounded-lg bg-[var(--surface-hover)] text-center">
+                          <p className="text-[10px] text-[var(--text-tertiary)] uppercase">{env}</p>
+                          <span className={`text-xs font-bold ${flag.defaults[env] ? 'text-emerald-600' : 'text-[var(--text-disabled)]'}`}>
+                            {flag.defaults[env] ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {flag.changeHistory.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-[var(--divider)]">
+                        <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">Change History</p>
+                        <div className="space-y-1">
+                          {flag.changeHistory.slice(-3).map((ch, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs">
+                              <span className="text-[var(--text-tertiary)]">{ch.date}</span>
+                              <span className="px-1.5 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{ch.env}</span>
+                              <span className={ch.oldVal ? 'text-emerald-600' : 'text-red-500'}>{ch.oldVal ? 'ON' : 'OFF'}</span>
+                              <span>→</span>
+                              <span className={ch.newVal ? 'text-emerald-600' : 'text-red-500'}>{ch.newVal ? 'ON' : 'OFF'}</span>
+                              <span className="text-[var(--text-tertiary)]">by {ch.by}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* GATE THRESHOLDS TAB */}
+        {activeTab === 'gates' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Gate Thresholds</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Quality gate configuration · Maker-checker required for changes · CP-CICD-01 enforced</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Gate</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Metric</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Threshold</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Current</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {gateThresholds.map(gt => (
+                    <tr key={gt.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{gt.name}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{gt.metric}</td>
+                      <td className="px-4 py-3 text-center font-tabular text-[var(--text-secondary)]">{gt.threshold}</td>
+                      <td className="px-4 py-3 text-center font-tabular font-medium text-[var(--text-primary)]">{gt.currentValue}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium border ${getStatusColor(gt.status)}`}>{gt.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Regression Suites */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Named Regression Suites</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {regressionSuites.map(suite => (
+                  <div key={suite.id} className="px-4 py-3 flex items-center gap-4">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${suite.status === 'active' ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                    <span className="text-sm text-[var(--text-primary)] flex-1">{suite.name}</span>
+                    <span className="text-xs text-[var(--text-tertiary)]">Owner: {suite.partOwner}</span>
+                    <span className="text-xs font-tabular text-[var(--text-secondary)]">{suite.testsCount} tests</span>
+                    <StatusChip status={suite.status} variant={suite.status === 'active' ? 'success' : 'neutral'} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* EVIDENCE BUNDLES TAB */}
+        {activeTab === 'evidence' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Part Evidence Bundles</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Per-Part evidence required for completion · SA-47 traceability</p>
+            </div>
+
+            <div className="space-y-3">
+              {evidenceBundles.map(bundle => (
+                <div key={bundle.partNo} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+                  <div className="p-4 flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-[var(--brand-primary)]">{bundle.partNo}</span>
+                      <span className="text-sm text-[var(--text-primary)]">{bundle.partName}</span>
+                    </div>
+                    <StatusChip status={bundle.status} variant={bundle.status === 'complete' ? 'success' : bundle.status === 'in-progress' ? 'info' : 'neutral'} />
+                  </div>
+                  <div className="px-4 pb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {[
+                        { label: 'Tests', value: `${bundle.testsPassed}✓ ${bundle.testsFailed}✗`, ok: bundle.testsFailed === 0 },
+                        { label: 'Coverage', value: `${bundle.coverage}%`, ok: bundle.coverage >= 80 },
+                        { label: 'Schema Diff', value: bundle.schemaDiff, ok: bundle.schemaDiff === 'empty' || bundle.schemaDiff === 'additive' },
+                        { label: 'Golden Outputs', value: bundle.goldenOutputs === 'unchanged' ? 'Unchanged' : bundle.goldenOutputs, ok: bundle.goldenOutputs !== 'changed-unapproved' },
+                        { label: 'OpenAPI', value: bundle.openApiDiff === 'no-breaking' ? 'No Breaking' : 'Breaking', ok: bundle.openApiDiff === 'no-breaking' },
+                        { label: 'Audit', value: bundle.auditRecord, ok: bundle.auditRecord === 'approved' },
+                      ].map((item, i) => (
+                        <div key={i} className={`p-2 rounded-lg text-center ${item.ok ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+                          <p className="text-[10px] text-[var(--text-tertiary)] uppercase">{item.label}</p>
+                          <p className={`text-xs font-medium mt-0.5 ${item.ok ? 'text-emerald-700' : 'text-red-700'}`}>{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Screenshots */}
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--divider)]">
+                      <span className="text-xs text-[var(--text-tertiary)]">Screenshots:</span>
+                      {[
+                        { label: '360px', ok: bundle.screenshots.mobile },
+                        { label: '820px', ok: bundle.screenshots.tablet },
+                        { label: '1440px', ok: bundle.screenshots.desktop },
+                      ].map((s, i) => (
+                        <span key={i} className={`text-xs px-2 py-0.5 rounded ${s.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {s.label} {s.ok ? '✓' : '—'}
+                        </span>
+                      ))}
+                    </div>
+                    {/* Artifacts */}
+                    {bundle.artifacts.length > 0 && (
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="text-xs text-[var(--text-tertiary)]">Artifacts:</span>
+                        {bundle.artifacts.map((a, i) => (
+                          <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)] font-mono">{a}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* QUARANTINE TAB */}
+        {activeTab === 'quarantine' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Flaky Test Quarantine</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{quarantinedTests.filter(q => q.status === 'quarantined').length} active quarantines · Quarantined tests never count as passed</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Test</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Suite</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Reason</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Owner</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Expires</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {quarantinedTests.map(qt => (
+                    <tr key={qt.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3">
+                        <p className="font-mono text-xs text-[var(--text-primary)]">{qt.testName}</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)]">{qt.id}</p>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{qt.suite}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)] max-w-xs">{qt.reason}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{qt.owner}</td>
+                      <td className="px-4 py-3 text-center text-xs font-tabular text-[var(--text-secondary)]">{qt.expiresAt}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={qt.status} variant={qt.status === 'quarantined' ? 'warning' : qt.status === 'resolved' ? 'success' : 'neutral'} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -2510,6 +3044,7 @@ function AppLayout() {
             <Route path="/preferences" element={<PreferencesPage />} />
             <Route path="/_tech/program/baseline" element={<TechConsoleBaseline />} />
             <Route path="/_tech/audit" element={<AuditDashboard />} />
+            <Route path="/_tech/cicd" element={<CICDDashboard />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

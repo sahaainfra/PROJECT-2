@@ -44,6 +44,7 @@ import {
   type Permission, type Role, type UserRoleAssignment, type SodRule
 } from './data/iam';
 import { AuditSecModule } from './components/AuditSecModule';
+import { SecBaseModule } from './components/SecBaseModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -57,6 +58,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.org': true,
   'ff.iam': true,
   'ff.audit_sec': true,
+  'ff.secbase': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1325,6 +1327,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Core Services
+          </button>
+          <button
+            onClick={() => navigate('/_tech/secbase')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Security Baseline
           </button>
           <button
             onClick={() => navigate('/admin/org')}
@@ -4540,6 +4548,7 @@ function AppLayout() {
             <Route path="/_tech/audit" element={<AuditDashboard />} />
             <Route path="/_tech/cicd" element={<CICDDashboard />} />
             <Route path="/_tech/core" element={<CoreServicesDashboard />} />
+            <Route path="/_tech/secbase" element={<SecBaseModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

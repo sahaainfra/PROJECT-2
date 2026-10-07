@@ -4646,6 +4646,7 @@ function AppLayout() {
             <Route path="/field/offline" element={<OfflineModule />} />
             <Route path="/home/search" element={<SearchModule />} />
             <Route path="/engineering/doc" element={<DocModule />} />
+            <Route path="/engineering/dsig" element={<DsigModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

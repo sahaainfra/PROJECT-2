@@ -98,6 +98,7 @@ export const navigationRegistry: NavGroup[] = [
     id: 'engineering-documents', label: 'Engineering & Documents', iconKey: 'file-check', sortOrder: 90,
     entries: [
       { id: 'doc-register', group: 'engineering-documents', label: 'Document Register', iconKey: 'file-check', route: '/engineering/doc', permissionKey: 'doc.document.view', featureFlag: 'ff.doc', sortOrder: 0, keywords: ['document', 'drawing', 'revision', 'transmittal', 'rfi', 'correspondence', 'register'], isActive: true } as NavEntry,
+      { id: 'digital-signatures', group: 'engineering-documents', label: 'Digital Signatures', iconKey: 'pen-tool', route: '/engineering/dsig', permissionKey: 'dsig.request.view', featureFlag: 'ff.dsig', sortOrder: 1, keywords: ['signature', 'sign', 'dsc', 'esign', 'verification', 'qr', 'hash', 'tamper'], isActive: true } as NavEntry,
     ],
   },
 ];

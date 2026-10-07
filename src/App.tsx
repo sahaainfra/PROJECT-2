@@ -52,6 +52,7 @@ import { ProtocolModule } from './components/ProtocolModule';
 import { AccModule } from './components/AccModule';
 import { WfModule } from './components/WfModule';
 import { RulesModule } from './components/RulesModule';
+import { RtModule } from './components/RtModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -73,6 +74,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.rules': true,
   'ff.protocol': true,
   'ff.acc': true,
+  'ff.rt': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -4608,6 +4610,7 @@ function AppLayout() {
             <Route path="/admin/rules" element={<RulesModule />} />
             <Route path="/admin/protocol" element={<ProtocolModule />} />
             <Route path="/admin/acc" element={<AccModule />} />
+            <Route path="/home/rt" element={<RtModule />} />
             <Route path="/workflow" element={<WfModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -27,8 +27,9 @@ export const navigationRegistry: NavGroup[] = [
     entries: [
       { id: 'launchpad', group: 'home', label: 'Launchpad', iconKey: 'grid', route: '/', permissionKey: 'shell.home.view', featureFlag: 'ff.pgm', sortOrder: 0, keywords: ['home', 'dashboard'], isActive: true },
       { id: 'my-workspace', group: 'home', label: 'My Workspace', iconKey: 'layout-dashboard', route: '/home/dash', permissionKey: 'dash.workspace.view', featureFlag: 'ff.dash', sortOrder: 1, keywords: ['workspace', 'dashboard', 'personal', 'kpi'], isActive: true } as NavEntry,
-      { id: 'my-approvals', group: 'home', label: 'My Approvals', iconKey: 'inbox', route: '/workflow', permissionKey: 'wf.task.act', featureFlag: 'ff.wf', sortOrder: 2, keywords: ['workflow', 'approval', 'inbox', 'task'], isActive: true, badge: '3' } as NavEntry,
-      { id: 'notifications', group: 'home', label: 'Notifications', iconKey: 'bell', route: '/home/rt', permissionKey: 'ntf.view', featureFlag: 'ff.rt', sortOrder: 3, keywords: ['notification', 'alert', 'message', 'real-time'], isActive: true, badge: '5' } as NavEntry,
+      { id: 'responsive-shell', group: 'home', label: 'Responsive Shell', iconKey: 'smartphone', route: '/home/rsp', permissionKey: 'rsp.shell.view', featureFlag: 'ff.rsp', sortOrder: 2, keywords: ['responsive', 'mobile', 'tablet', 'desktop', 'pwa', 'device'], isActive: true } as NavEntry,
+      { id: 'my-approvals', group: 'home', label: 'My Approvals', iconKey: 'inbox', route: '/workflow', permissionKey: 'wf.task.act', featureFlag: 'ff.wf', sortOrder: 3, keywords: ['workflow', 'approval', 'inbox', 'task'], isActive: true, badge: '3' } as NavEntry,
+      { id: 'notifications', group: 'home', label: 'Notifications', iconKey: 'bell', route: '/home/rt', permissionKey: 'ntf.view', featureFlag: 'ff.rt', sortOrder: 4, keywords: ['notification', 'alert', 'message', 'real-time'], isActive: true, badge: '5' } as NavEntry,
     ],
   },
   {

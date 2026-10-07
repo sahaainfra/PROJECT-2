@@ -47,6 +47,7 @@ import { AuditSecModule } from './components/AuditSecModule';
 import { SecBaseModule } from './components/SecBaseModule';
 import { IdSodModule } from './components/IdSodModule';
 import { ObsModule } from './components/ObsModule';
+import { EvBusModule } from './components/EvBusModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -63,6 +64,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.secbase': true,
   'ff.idsod': true,
   'ff.obs': true,
+  'ff.evbus': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1343,6 +1345,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Observability
+          </button>
+          <button
+            onClick={() => navigate('/_tech/evbus')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Event Bus
           </button>
           <button
             onClick={() => navigate('/admin/org')}
@@ -4566,6 +4574,7 @@ function AppLayout() {
             <Route path="/_tech/core" element={<CoreServicesDashboard />} />
             <Route path="/_tech/secbase" element={<SecBaseModule />} />
             <Route path="/_tech/obs" element={<ObsModule />} />
+            <Route path="/_tech/evbus" element={<EvBusModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

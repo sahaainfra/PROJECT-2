@@ -99,6 +99,7 @@ export const navigationRegistry: NavGroup[] = [
     entries: [
       { id: 'doc-register', group: 'engineering-documents', label: 'Document Register', iconKey: 'file-check', route: '/engineering/doc', permissionKey: 'doc.document.view', featureFlag: 'ff.doc', sortOrder: 0, keywords: ['document', 'drawing', 'revision', 'transmittal', 'rfi', 'correspondence', 'register'], isActive: true } as NavEntry,
       { id: 'digital-signatures', group: 'engineering-documents', label: 'Digital Signatures', iconKey: 'pen-tool', route: '/engineering/dsig', permissionKey: 'dsig.request.view', featureFlag: 'ff.dsig', sortOrder: 1, keywords: ['signature', 'sign', 'dsc', 'esign', 'verification', 'qr', 'hash', 'tamper'], isActive: true } as NavEntry,
+      { id: 'document-templates', group: 'engineering-documents', label: 'Document Templates', iconKey: 'layout', route: '/admin/docfmt', permissionKey: 'fmt.template.view', featureFlag: 'ff.docfmt', sortOrder: 2, keywords: ['template', 'format', 'document', 'brand', 'numbering', 'revision', 'letterhead'], isActive: true } as NavEntry,
     ],
   },
 ];

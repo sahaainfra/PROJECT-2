@@ -62,6 +62,7 @@ import { OfflineModule } from './components/OfflineModule';
 import { SearchModule } from './components/SearchModule';
 import { DocModule } from './components/DocModule';
 import { DsigModule } from './components/DsigModule';
+import { DocfmtModule } from './components/DocfmtModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -93,6 +94,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.search': true,
   'ff.doc': true,
   'ff.dsig': true,
+  'ff.docfmt': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -4647,6 +4649,7 @@ function AppLayout() {
             <Route path="/home/search" element={<SearchModule />} />
             <Route path="/engineering/doc" element={<DocModule />} />
             <Route path="/engineering/dsig" element={<DsigModule />} />
+            <Route path="/admin/docfmt" element={<DocfmtModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

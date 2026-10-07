@@ -53,6 +53,7 @@ import { AccModule } from './components/AccModule';
 import { WfModule } from './components/WfModule';
 import { RulesModule } from './components/RulesModule';
 import { RtModule } from './components/RtModule';
+import { IntgModule } from './components/IntgModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -75,6 +76,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.protocol': true,
   'ff.acc': true,
   'ff.rt': true,
+  'ff.intg': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1361,6 +1363,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Event Bus
+          </button>
+          <button
+            onClick={() => navigate('/admin/intg')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Integrations
           </button>
           <button
             onClick={() => navigate('/admin/org')}
@@ -4611,6 +4619,7 @@ function AppLayout() {
             <Route path="/admin/protocol" element={<ProtocolModule />} />
             <Route path="/admin/acc" element={<AccModule />} />
             <Route path="/home/rt" element={<RtModule />} />
+            <Route path="/admin/intg" element={<IntgModule />} />
             <Route path="/workflow" element={<WfModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />

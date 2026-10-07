@@ -12,12 +12,17 @@ import {
 } from 'lucide-react';
 import { lightTokens, darkTokens, highContrastTokens, type DesignTokens, type ThemeMode, type DensityMode } from './design/tokens';
 import { navigationRegistry, type NavGroup, type NavEntry } from './data/navigation';
+import {
+  stackInfo, modulesInventory, dbEntities, apiInventory, calculationsInventory,
+  riskRegister, conflicts, gapMatrix, controlInventory, dependencyMap, socketEvents, backgroundJobs
+} from './data/audit';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
   'ff.pgm': true,
   'ff.pgm.theme': true,
   'ff.tech_console': true,
+  'ff.audit': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -54,13 +59,14 @@ function getTokensForTheme(theme: ThemeMode): DesignTokens {
 // ===== ICON MAP =====
 const iconMap: Record<string, React.ComponentType<any>> = {
   home: Home, grid: Grid3X3, folder: FolderOpen, building: Building2, sitemap: GitBranch,
-  calculator: Calculator, calendar: CalendarDays, 'file-text': FileText, clipboard: ClipboardList,
-  truck: Truck, 'file-check': FileCheck, cart: ShoppingCart, warehouse: Warehouse,
-  package: Package, boxes: Boxes, 'arrow-up-right': ArrowUpRight, dollar: DollarSign,
-  receipt: Receipt, users: Users, 'pie-chart': PieChart, 'user-check': Shield,
-  clock: Clock, user: User, search: Search, 'alert-triangle': AlertTriangle,
+  'git-branch': GitBranch, calculator: Calculator, calendar: CalendarDays, 'file-text': FileText,
+  clipboard: ClipboardList, truck: Truck, 'file-check': FileCheck, cart: ShoppingCart,
+  warehouse: Warehouse, package: Package, boxes: Boxes, 'arrow-up-right': ArrowUpRight,
+  dollar: DollarSign, receipt: Receipt, users: Users, 'pie-chart': PieChart,
+  'user-check': Shield, clock: Clock, user: User, search: Search,
+  'alert-triangle': AlertTriangle, 'alert-circle': AlertCircle,
   'layout-dashboard': LayoutDashboard, 'file-bar-chart': FileBarChart, shield: Shield,
-  'bar-chart': BarChart3,
+  'bar-chart': BarChart3, layers: Layers, database: Boxes, target: Target,
 };
 
 function Icon({ name, size = 20, className = '' }: { name: string; size?: number; className?: string }) {
@@ -1237,15 +1243,32 @@ function GenericModulePage({ title, subtitle, icon }: { title: string; subtitle:
 
 // ===== TECHNICAL CONSOLE (DS-32) =====
 function TechConsoleBaseline() {
+  const navigate = useNavigate();
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
-          <Terminal size={20} className="text-white" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+            <Terminal size={20} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">Technical Console</h1>
+            <p className="text-xs text-[var(--text-tertiary)]">/_tech · Read-only · TECH_ADMIN access · ff.tech_console</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Technical Console — Program Baseline</h1>
-          <p className="text-xs text-[var(--text-tertiary)]">/_tech/program/baseline · Read-only · TECH_ADMIN access</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/_tech/program/baseline')}
+            className="px-3 py-1.5 text-sm rounded-lg bg-[var(--brand-primary)] text-white font-medium"
+          >
+            Baseline
+          </button>
+          <button
+            onClick={() => navigate('/_tech/audit')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            System Audit
+          </button>
         </div>
       </div>
 
@@ -1376,6 +1399,628 @@ function PreferencesPage() {
   );
 }
 
+// ===== AUDIT DASHBOARD (Part 01 — DS-32 Technical Console) =====
+function AuditDashboard() {
+  const [activeSection, setActiveSection] = useState('overview');
+  const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
+
+  const sections = [
+    { id: 'overview', label: 'Overview', icon: 'layout-dashboard' },
+    { id: 'stack', label: 'Stack & Modules', icon: 'layers' },
+    { id: 'database', label: 'DB Entities', icon: 'database' },
+    { id: 'api', label: 'API Inventory', icon: 'file-text' },
+    { id: 'calculations', label: 'Calculations', icon: 'calculator' },
+    { id: 'risks', label: 'Risk Register', icon: 'alert-triangle' },
+    { id: 'conflicts', label: 'Conflicts', icon: 'alert-circle' },
+    { id: 'gaps', label: 'Gap Matrix', icon: 'target' },
+    { id: 'controls', label: 'Control Inventory', icon: 'shield' },
+    { id: 'dependencies', label: 'Dependencies', icon: 'git-branch' },
+  ];
+
+  const severityColors: Record<string, string> = {
+    critical: 'bg-red-100 text-red-700 border-red-200',
+    high: 'bg-orange-100 text-orange-700 border-orange-200',
+    medium: 'bg-amber-100 text-amber-700 border-amber-200',
+    low: 'bg-blue-100 text-blue-700 border-blue-200',
+  };
+
+  const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral'> = {
+    working: 'success',
+    partial: 'warning',
+    broken: 'error',
+    absent: 'neutral',
+  };
+
+  return (
+    <div className="flex h-full">
+      {/* Audit Sidebar */}
+      <div className="w-56 border-r border-[var(--border)] bg-[var(--sidebar-bg)] p-3 overflow-y-auto shrink-0 hidden lg:block">
+        <div className="mb-4 px-2">
+          <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">System Audit</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-1">Part 01 · Read-only</p>
+        </div>
+        <nav className="space-y-1">
+          {sections.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+                activeSection === s.id
+                  ? 'bg-[var(--brand-primary)] text-white font-medium'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+              }`}
+            >
+              <Icon name={s.icon} size={16} />
+              {s.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Mobile section selector */}
+        <div className="lg:hidden mb-4">
+          <select
+            value={activeSection}
+            onChange={e => setActiveSection(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-primary)]"
+          >
+            {sections.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </div>
+
+        {activeSection === 'overview' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Existing System Audit</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Part 01 — Architecture Discovery & Gap Analysis · Read-only inventory</p>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Modules</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">10</p>
+                <p className="text-xs text-emerald-600 mt-1">6 working, 4 partial</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Tables</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">20</p>
+                <p className="text-xs text-amber-600 mt-1">8 need EXTEND</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">API Endpoints</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">30</p>
+                <p className="text-xs text-emerald-600 mt-1">All auth-protected</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Open Risks</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">10</p>
+                <p className="text-xs text-red-600 mt-1">1 critical, 4 high</p>
+              </div>
+            </div>
+
+            {/* Module Status Overview */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Module Status Overview</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {modulesInventory.map(m => (
+                  <div key={m.id} className="px-4 py-3 flex items-center gap-4 hover:bg-[var(--surface-hover)]">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--surface-hover)] flex items-center justify-center">
+                      <Icon name={m.id === 'pm' ? 'building' : m.id === 'proc' ? 'clipboard' : m.id === 'inv' ? 'boxes' : m.id === 'fin' ? 'receipt' : m.id === 'hr' ? 'users' : m.id === 'qa' ? 'shield' : m.id === 'rpt' ? 'bar-chart' : m.id === 'auth' ? 'user' : m.id === 'doc' ? 'file-text' : 'bell'} size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{m.name}</p>
+                      <p className="text-xs text-[var(--text-tertiary)] truncate">{m.notes}</p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-4 text-xs text-[var(--text-tertiary)]">
+                      <span>{m.routes.length} routes</span>
+                      <span>{m.tables.length} tables</span>
+                      <span>{m.apis} APIs</span>
+                    </div>
+                    <StatusChip status={m.status} variant={statusColors[m.status]} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Key Findings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-red-500" /> Critical Findings
+                </h3>
+                <div className="space-y-2">
+                  {riskRegister.filter(r => r.severity === 'critical' || r.severity === 'high').slice(0, 4).map(r => (
+                    <div key={r.id} className="flex items-start gap-2">
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${severityColors[r.severity]}`}>{r.severity}</span>
+                      <p className="text-sm text-[var(--text-primary)]">{r.title}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-500" /> Duplicate / Conflict Detection
+                </h3>
+                <div className="space-y-2">
+                  {conflicts.map(c => (
+                    <div key={c.id} className="flex items-start gap-2">
+                      <span className="text-xs font-mono text-[var(--brand-primary)] shrink-0">{c.id}</span>
+                      <p className="text-sm text-[var(--text-primary)]">{c.concept}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Coverage Summary */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Gap Coverage by Part</h3>
+              <div className="space-y-3">
+                {gapMatrix.map(g => (
+                  <div key={g.part}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-[var(--text-primary)]">{g.part} — {g.name}</span>
+                      <span className="text-xs font-tabular text-[var(--text-secondary)]">{g.coverage}%</span>
+                    </div>
+                    <div className="h-2 bg-[var(--surface-hover)] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${g.coverage >= 50 ? 'bg-emerald-500' : g.coverage >= 20 ? 'bg-amber-500' : 'bg-red-500'}`}
+                        style={{ width: `${g.coverage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'stack' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Stack & Modules</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Technology stack versions and module inventory</p>
+            </div>
+
+            {/* Stack Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(stackInfo).map(([category, details]) => (
+                <div key={category} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                  <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3 capitalize">{category.replace(/([A-Z])/g, ' $1')}</h3>
+                  <div className="space-y-2">
+                    {Object.entries(details).map(([key, value]) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <span className="text-xs text-[var(--text-tertiary)] capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                        <span className="text-xs font-mono text-[var(--text-primary)]">{typeof value === 'string' ? value : (value as string[]).join(', ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Full Module List */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Module Details</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Module</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Routes</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Tables</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">APIs</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Screens</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--divider)]">
+                    {modulesInventory.map(m => (
+                      <tr key={m.id} className="hover:bg-[var(--surface-hover)]">
+                        <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{m.name}</td>
+                        <td className="px-4 py-3"><StatusChip status={m.status} variant={statusColors[m.status]} /></td>
+                        <td className="px-4 py-3 text-right font-tabular">{m.routes.length}</td>
+                        <td className="px-4 py-3 text-right font-tabular">{m.tables.length}</td>
+                        <td className="px-4 py-3 text-right font-tabular">{m.apis}</td>
+                        <td className="px-4 py-3 text-right font-tabular">{m.screens}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-secondary)] max-w-xs truncate">{m.notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'database' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Database Entities</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">20 tables inventoried · REUSE / EXTEND / NEW mapping for Parts 3–130</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Table</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Cols</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Rows</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">FK</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Idx</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Audit</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Decision</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--divider)]">
+                    {dbEntities.map(t => (
+                      <tr key={t.name} className="hover:bg-[var(--surface-hover)]">
+                        <td className="px-4 py-3 font-mono text-xs text-[var(--text-primary)]">{t.name}</td>
+                        <td className="px-4 py-3 text-right font-tabular">{t.columns}</td>
+                        <td className="px-4 py-3 text-right font-tabular">{t.rows.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-center">{t.hasFK ? <CheckCircle2 size={14} className="text-emerald-500 mx-auto" /> : <XCircle size={14} className="text-red-400 mx-auto" />}</td>
+                        <td className="px-4 py-3 text-center">{t.hasIndex ? <CheckCircle2 size={14} className="text-emerald-500 mx-auto" /> : <XCircle size={14} className="text-red-400 mx-auto" />}</td>
+                        <td className="px-4 py-3 text-center">{t.hasAudit ? <CheckCircle2 size={14} className="text-emerald-500 mx-auto" /> : <XCircle size={14} className="text-red-400 mx-auto" />}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                            t.decision === 'REUSE' ? 'bg-emerald-100 text-emerald-700' :
+                            t.decision === 'EXTEND' ? 'bg-amber-100 text-amber-700' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>{t.decision}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-secondary)] max-w-xs truncate">{t.notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'api' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">API Inventory</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{apiInventory.length} endpoints · All auth-protected · Permission coverage analysis</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Method</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Path</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Handler</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Auth</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Perm</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Consumers</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--divider)]">
+                    {apiInventory.map((api, i) => (
+                      <tr key={i} className="hover:bg-[var(--surface-hover)]">
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
+                            api.method === 'GET' ? 'bg-blue-100 text-blue-700' :
+                            api.method === 'POST' ? 'bg-emerald-100 text-emerald-700' :
+                            api.method === 'PUT' ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>{api.method}</span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-[var(--text-primary)]">{api.path}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{api.handler}</td>
+                        <td className="px-4 py-3 text-center">{api.authRequired ? <CheckCircle2 size={14} className="text-emerald-500 mx-auto" /> : <XCircle size={14} className="text-red-400 mx-auto" />}</td>
+                        <td className="px-4 py-3 text-center">{api.permissionChecked ? <CheckCircle2 size={14} className="text-emerald-500 mx-auto" /> : <XCircle size={14} className="text-amber-400 mx-auto" />}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{api.consumers}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'calculations' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Calculation Inventory</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{calculationsInventory.length} formulas identified · Input to Part 35 (Calculation Engine)</p>
+            </div>
+
+            <div className="space-y-3">
+              {calculationsInventory.map(calc => (
+                <div key={calc.id} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-[var(--brand-primary)]">{calc.id}</span>
+                        <h4 className="text-sm font-medium text-[var(--text-primary)]">{calc.name}</h4>
+                        {!calc.hasTest && <StatusChip status="No test" variant="warning" />}
+                      </div>
+                      <div className="mt-2 p-2 rounded-lg bg-[var(--surface-hover)] font-mono text-xs text-[var(--text-primary)]">
+                        {calc.formula}
+                      </div>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-[var(--text-tertiary)]">
+                        <span className="flex items-center gap-1"><FileText size={12} /> {calc.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-[var(--text-tertiary)]">Used by:</span>
+                        {calc.usedBy.map((u, i) => (
+                          <span key={i} className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{u}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'risks' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Risk Register</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{riskRegister.length} risks identified · {riskRegister.filter(r => r.severity === 'critical').length} critical, {riskRegister.filter(r => r.severity === 'high').length} high</p>
+            </div>
+
+            <div className="space-y-3">
+              {riskRegister.map(risk => (
+                <div key={risk.id} className={`bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden ${expandedRisk === risk.id ? 'ring-2 ring-[var(--brand-primary)]' : ''}`}>
+                  <button
+                    onClick={() => setExpandedRisk(expandedRisk === risk.id ? null : risk.id)}
+                    className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-[var(--surface-hover)]"
+                  >
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded shrink-0 ${severityColors[risk.severity]}`}>
+                      {risk.severity.toUpperCase()}
+                    </span>
+                    <span className="text-xs font-mono text-[var(--text-tertiary)] shrink-0">{risk.id}</span>
+                    <span className="text-sm text-[var(--text-primary)] flex-1">{risk.title}</span>
+                    <StatusChip status={risk.category} variant={risk.category === 'security' ? 'error' : risk.category === 'data-quality' ? 'warning' : risk.category === 'performance' ? 'info' : 'neutral'} />
+                    <ChevronRight size={16} className={`text-[var(--text-tertiary)] transition-transform ${expandedRisk === risk.id ? 'rotate-90' : ''}`} />
+                  </button>
+                  {expandedRisk === risk.id && (
+                    <div className="px-4 pb-4 border-t border-[var(--divider)] pt-3 space-y-2">
+                      <div>
+                        <p className="text-xs font-medium text-[var(--text-tertiary)]">Description</p>
+                        <p className="text-sm text-[var(--text-primary)]">{risk.description}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[var(--text-tertiary)]">Evidence</p>
+                        <p className="text-sm font-mono text-[var(--text-secondary)] bg-[var(--surface-hover)] p-2 rounded">{risk.evidence}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[var(--text-tertiary)]">Mitigation</p>
+                        <p className="text-sm text-[var(--text-primary)]">{risk.mitigation}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'conflicts' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Duplicate / Conflict Detection</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{conflicts.length} conflicts found — two implementations of the same concept</p>
+            </div>
+
+            <div className="space-y-3">
+              {conflicts.map(c => (
+                <div key={c.id} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-mono text-[var(--brand-primary)]">{c.id}</span>
+                    <h4 className="text-sm font-semibold text-[var(--text-primary)]">{c.concept}</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Implementations found:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {c.implementations.map((impl, i) => (
+                          <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-700 border border-red-200">{impl}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--divider)]">
+                      <ArrowRight size={14} className="text-[var(--brand-primary)]" />
+                      <p className="text-sm text-[var(--text-primary)]">{c.resolution}</p>
+                      <span className="text-xs text-[var(--text-tertiary)] ml-auto">→ {c.targetPart}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'gaps' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Gap Matrix</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Coverage analysis for Parts 3–130 · REUSE/EXTEND/NEW guidance</p>
+            </div>
+
+            <div className="space-y-3">
+              {gapMatrix.map(g => (
+                <div key={g.part} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-[var(--brand-primary)]">{g.part}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{g.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 h-2 bg-[var(--surface-hover)] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${g.coverage >= 50 ? 'bg-emerald-500' : g.coverage >= 20 ? 'bg-amber-500' : 'bg-red-500'}`}
+                          style={{ width: `${g.coverage}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-tabular font-bold text-[var(--text-primary)]">{g.coverage}%</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs font-medium text-emerald-600 mb-1">Reusable</p>
+                      {g.reusable.length > 0 ? g.reusable.map((r, i) => (
+                        <p key={i} className="text-xs text-[var(--text-secondary)]">• {r}</p>
+                      )) : <p className="text-xs text-[var(--text-tertiary)] italic">Nothing reusable</p>}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-amber-600 mb-1">Missing</p>
+                      {g.missing.map((m, i) => (
+                        <p key={i} className="text-xs text-[var(--text-secondary)]">• {m}</p>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-red-600 mb-1">Risks</p>
+                      {g.risks.map((r, i) => (
+                        <p key={i} className="text-xs text-[var(--text-secondary)]">• {r}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'controls' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Control Inventory</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">PC-1 stage coverage per module · Input to Part 14 OBSERVE seeding</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                      <th className="px-3 py-2 text-left font-medium text-[var(--text-secondary)]">Module</th>
+                      {['PLAN', 'AUTH', 'EXEC', 'RECORD', 'VERIFY', 'ANALYZE', 'CONTROL', 'CLOSE'].map(s => (
+                        <th key={s} className="px-2 py-2 text-center font-medium text-[var(--text-secondary)]">{s}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--divider)]">
+                    {controlInventory.map((c, i) => (
+                      <tr key={i} className="hover:bg-[var(--surface-hover)]">
+                        <td className="px-3 py-2 font-medium text-[var(--text-primary)]">{c.module}</td>
+                        {[c.plan, c.authorize, c.execute, c.record, c.verify, c.analyze, c.control, c.close].map((stage, j) => (
+                          <td key={j} className="px-2 py-2 text-center">
+                            {stage.exists ? (
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                stage.enforcement === 'hard' ? 'bg-emerald-100 text-emerald-700' :
+                                stage.enforcement === 'soft' ? 'bg-amber-100 text-amber-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {stage.enforcement === 'hard' ? 'HARD' : stage.enforcement === 'soft' ? 'SOFT' : '—'}
+                              </span>
+                            ) : (
+                              <span className="text-[var(--text-disabled)]">—</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-3 border-t border-[var(--border)] flex items-center gap-4 text-xs text-[var(--text-tertiary)]">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" /> Hard enforcement</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-200" /> Soft enforcement</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200" /> None / Missing</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'dependencies' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dependency Map</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Cross-module dependencies · Data, API, and event couplings</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="divide-y divide-[var(--divider)]">
+                {dependencyMap.map((d, i) => (
+                  <div key={i} className="px-4 py-3 flex items-center gap-4 hover:bg-[var(--surface-hover)]">
+                    <span className="text-sm font-medium text-[var(--text-primary)] min-w-[120px]">{d.from}</span>
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="h-px flex-1 bg-[var(--border-strong)]" />
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                        d.type === 'data' ? 'bg-blue-100 text-blue-700' :
+                        d.type === 'direct-access' ? 'bg-red-100 text-red-700' :
+                        'bg-emerald-100 text-emerald-700'
+                      }`}>{d.type}</span>
+                      <div className="h-px flex-1 bg-[var(--border-strong)]" />
+                    </div>
+                    <span className="text-sm font-medium text-[var(--text-primary)] min-w-[120px] text-right">{d.to}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Socket Events */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Socket.IO Events</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {socketEvents.map((e, i) => (
+                  <div key={i} className="px-4 py-3 flex items-center gap-4">
+                    <span className="text-xs font-mono text-[var(--brand-primary)]">{e.event}</span>
+                    <span className="text-xs text-[var(--text-secondary)] flex-1">{e.description}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-tertiary)]">{e.room}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${e.auth ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      {e.auth ? 'Auth' : 'Open'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Background Jobs */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Background Jobs</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {backgroundJobs.map((j, i) => (
+                  <div key={i} className="px-4 py-3 flex items-center gap-4">
+                    <span className="text-sm font-mono text-[var(--text-primary)] flex-1">{j.name}</span>
+                    <span className="text-xs font-mono text-[var(--text-tertiary)]">{j.schedule}</span>
+                    <span className="text-xs text-[var(--text-secondary)] flex-1">{j.description}</span>
+                    <StatusChip status={j.status} variant="success" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ===== MAIN APP LAYOUT =====
 function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -1434,6 +2079,7 @@ function AppLayout() {
             <Route path="/reports/catalog" element={<GenericModulePage title="Report Catalog" subtitle="Available reports and exports" icon="file-bar-chart" />} />
             <Route path="/preferences" element={<PreferencesPage />} />
             <Route path="/_tech/program/baseline" element={<TechConsoleBaseline />} />
+            <Route path="/_tech/audit" element={<AuditDashboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -1472,6 +2118,10 @@ function AppLayout() {
         </span>
         <div className="flex-1" />
         <span>ff.pgm: {isEnabled('ff.pgm') ? 'ON' : 'OFF'}</span>
+        <span className="mx-2">·</span>
+        <button onClick={() => navigate('/_tech/audit')} className="hover:text-[var(--text-secondary)] transition-colors">
+          Tech Console
+        </button>
       </footer>
     </div>
   );

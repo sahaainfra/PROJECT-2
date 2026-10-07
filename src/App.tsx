@@ -48,9 +48,10 @@ import { SecBaseModule } from './components/SecBaseModule';
 import { IdSodModule } from './components/IdSodModule';
 import { ObsModule } from './components/ObsModule';
 import { EvBusModule } from './components/EvBusModule';
+import { ProtocolModule } from './components/ProtocolModule';
+import { AccModule } from './components/AccModule';
 import { WfModule } from './components/WfModule';
 import { RulesModule } from './components/RulesModule';
-import { ProtocolModule } from './components/ProtocolModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -71,6 +72,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.wf': true,
   'ff.rules': true,
   'ff.protocol': true,
+  'ff.acc': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1393,6 +1395,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Protocol Engine
+          </button>
+          <button
+            onClick={() => navigate('/admin/acc')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Accountability
           </button>
           <button
             onClick={() => navigate('/preview')}
@@ -4599,6 +4607,7 @@ function AppLayout() {
             <Route path="/admin/idsod" element={<IdSodModule />} />
             <Route path="/admin/rules" element={<RulesModule />} />
             <Route path="/admin/protocol" element={<ProtocolModule />} />
+            <Route path="/admin/acc" element={<AccModule />} />
             <Route path="/workflow" element={<WfModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />

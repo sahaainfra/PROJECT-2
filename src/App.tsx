@@ -61,6 +61,7 @@ import { RspModule } from './components/RspModule';
 import { OfflineModule } from './components/OfflineModule';
 import { SearchModule } from './components/SearchModule';
 import { DocModule } from './components/DocModule';
+import { DsigModule } from './components/DsigModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -91,6 +92,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.offline': true,
   'ff.search': true,
   'ff.doc': true,
+  'ff.dsig': true,
 };
 
 function isEnabled(flagKey: string): boolean {

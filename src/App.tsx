@@ -56,6 +56,7 @@ import { RtModule } from './components/RtModule';
 import { IntgModule } from './components/IntgModule';
 import { DevApiModule } from './components/DevApiModule';
 import { DesignSystemModule } from './components/DesignSystemModule';
+import { DashModule } from './components/DashModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -81,6 +82,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.intg': true,
   'ff.devapi': true,
   'ff.ds': true,
+  'ff.dash': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -4629,6 +4631,7 @@ function AppLayout() {
             <Route path="/_tech/evbus" element={<EvBusModule />} />
             <Route path="/_tech/devapi" element={<DevApiModule />} />
             <Route path="/_tech/design-system" element={<DesignSystemModule />} />
+            <Route path="/home/dash" element={<DashModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

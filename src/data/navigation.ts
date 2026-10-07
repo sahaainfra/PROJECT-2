@@ -94,6 +94,12 @@ export const navigationRegistry: NavGroup[] = [
       { id: 'offline-sync', group: 'field-operations', label: 'Offline Sync', iconKey: 'cloud-off', route: '/field/offline', permissionKey: 'offline.device.view', featureFlag: 'ff.offline', sortOrder: 0, keywords: ['offline', 'sync', 'field', 'mobile', 'conflict', 'command'], isActive: true } as NavEntry,
     ],
   },
+  {
+    id: 'engineering-documents', label: 'Engineering & Documents', iconKey: 'file-check', sortOrder: 90,
+    entries: [
+      { id: 'doc-register', group: 'engineering-documents', label: 'Document Register', iconKey: 'file-check', route: '/engineering/doc', permissionKey: 'doc.document.view', featureFlag: 'ff.doc', sortOrder: 0, keywords: ['document', 'drawing', 'revision', 'transmittal', 'rfi', 'correspondence', 'register'], isActive: true } as NavEntry,
+    ],
+  },
 ];
 
 export function getAllNavEntries(): NavEntry[] {

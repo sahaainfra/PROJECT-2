@@ -1367,6 +1367,12 @@ function TechConsoleBaseline() {
             Event Bus
           </button>
           <button
+            onClick={() => navigate('/_tech/devapi')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Developer API
+          </button>
+          <button
             onClick={() => navigate('/admin/intg')}
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
@@ -4613,6 +4619,7 @@ function AppLayout() {
             <Route path="/_tech/secbase" element={<SecBaseModule />} />
             <Route path="/_tech/obs" element={<ObsModule />} />
             <Route path="/_tech/evbus" element={<EvBusModule />} />
+            <Route path="/_tech/devapi" element={<DevApiModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

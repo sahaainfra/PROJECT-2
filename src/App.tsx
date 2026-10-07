@@ -54,6 +54,7 @@ import { WfModule } from './components/WfModule';
 import { RulesModule } from './components/RulesModule';
 import { RtModule } from './components/RtModule';
 import { IntgModule } from './components/IntgModule';
+import { DevApiModule } from './components/DevApiModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -77,6 +78,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.acc': true,
   'ff.rt': true,
   'ff.intg': true,
+  'ff.devapi': true,
 };
 
 function isEnabled(flagKey: string): boolean {

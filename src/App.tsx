@@ -16,6 +16,10 @@ import {
   stackInfo, modulesInventory, dbEntities, apiInventory, calculationsInventory,
   riskRegister, conflicts, gapMatrix, controlInventory, dependencyMap, socketEvents, backgroundJobs
 } from './data/audit';
+import {
+  personas, widgetRegistry, initialFeedback, getWidgetsForPersona,
+  type PersonaKey, type WidgetDef, type FeedbackEntry, type Persona
+} from './data/preview';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -23,6 +27,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.pgm.theme': true,
   'ff.tech_console': true,
   'ff.audit': true,
+  'ff.preview': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -415,6 +420,16 @@ function HomePage() {
           <LaunchpadTile label="Reports" icon="file-bar-chart" color="bg-slate-500" route="/reports/catalog" onClick={() => navigate('/reports/catalog')} />
           <LaunchpadTile label="Contracts" icon="file-check" count={7} color="bg-amber-600" route="/procurement/contracts" onClick={() => navigate('/procurement/contracts')} />
           <LaunchpadTile label="Schedule" icon="calendar" color="bg-sky-500" route="/projects/schedule" onClick={() => navigate('/projects/schedule')} />
+          <button
+            onClick={() => navigate('/preview')}
+            className="group flex flex-col items-start p-5 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-left"
+          >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br from-amber-400 to-orange-600 group-hover:scale-110 transition-transform">
+              <Eye size={24} className="text-white" />
+            </div>
+            <p className="font-medium text-sm text-amber-900">Preview Environment</p>
+            <p className="text-xs text-amber-700 mt-1">Stakeholder dashboards</p>
+          </button>
         </div>
       </div>
 
@@ -1269,6 +1284,12 @@ function TechConsoleBaseline() {
           >
             System Audit
           </button>
+          <button
+            onClick={() => navigate('/preview')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 font-medium"
+          >
+            Preview Env →
+          </button>
         </div>
       </div>
 
@@ -1395,6 +1416,415 @@ function PreferencesPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ===== PREVIEW ENVIRONMENT (Part 02 — Live Dashboard Preview) =====
+function PreviewWidget({ widget, onFeedback }: { widget: WidgetDef; onFeedback: (code: string) => void }) {
+  const { tokens } = useTheme();
+  
+  return (
+    <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden hover:shadow-md transition-shadow relative">
+      {/* PREVIEW Badge */}
+      <div className="absolute top-2 right-2 z-10">
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wide">
+          {widget.dataMode === 'fixture' ? 'Preview Data' : 'Live'}
+        </span>
+      </div>
+      
+      {/* Widget Header */}
+      <div className="px-4 pt-4 pb-2">
+        <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wide">{widget.kpiCodes[0]}</p>
+        <h4 className="text-sm font-medium text-[var(--text-primary)] mt-0.5">{widget.title}</h4>
+      </div>
+
+      {/* Widget Content */}
+      <div className="px-4 pb-4">
+        {widget.type === 'kpi' && (
+          <div>
+            <p className="text-2xl font-bold text-[var(--text-primary)] font-tabular">{widget.payload.value}</p>
+            {widget.payload.previous && (
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">Previous: {widget.payload.previous}</p>
+            )}
+            {widget.payload.trend && (
+              <div className="flex items-end gap-0.5 mt-3 h-8">
+                {widget.payload.trend.map((v, i) => (
+                  <div key={i} className="flex-1 bg-[var(--brand-primary)] rounded-t opacity-60" style={{ height: `${(v / Math.max(...widget.payload.trend!)) * 100}%` }} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {widget.type === 'gauge' && (
+          <div className="flex items-center justify-center py-2">
+            <div className="relative w-24 h-24">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="48" cy="48" r="40" stroke="var(--surface-hover)" strokeWidth="8" fill="none" />
+                <circle cx="48" cy="48" r="40" stroke="var(--brand-primary)" strokeWidth="8" fill="none"
+                  strokeDasharray={`${parseInt(widget.payload.value) * 2.51} 251`} strokeLinecap="round" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-lg font-bold text-[var(--text-primary)] font-tabular">{widget.payload.value}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {widget.type === 'chart' && widget.chartData && (
+          <div className="flex items-end gap-1 h-24 mt-2">
+            {widget.chartData.map((d, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full rounded-t" style={{ height: `${(d.value / Math.max(...widget.chartData!.map(x => x.value))) * 100}%`, backgroundColor: d.color || 'var(--brand-primary)' }} />
+                <span className="text-[9px] text-[var(--text-tertiary)] truncate w-full text-center">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {widget.type === 'list' && widget.listData && (
+          <div className="space-y-2 mt-2">
+            {widget.listData.map((item, i) => (
+              <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-[var(--surface-hover)]">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-[var(--text-primary)] truncate">{item.label}</p>
+                  {item.sub && <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{item.sub}</p>}
+                </div>
+                {item.badge && (
+                  <StatusChip status={item.badge} variant={item.variant || 'neutral'} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {widget.type === 'status' && (
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-lg font-semibold text-[var(--text-primary)]">{widget.payload.value}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Widget Footer */}
+      <div className="px-4 py-2 border-t border-[var(--divider)] flex items-center justify-between text-[10px] text-[var(--text-tertiary)]">
+        <span>Source: {widget.futureSourcePrompt}</span>
+        <button onClick={() => onFeedback(widget.code)} className="text-[var(--brand-primary)] hover:underline font-medium">
+          Give Feedback
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PreviewDashboard({ persona, onFeedback }: { persona: Persona; onFeedback: (code: string) => void }) {
+  const widgets = getWidgetsForPersona(persona.key);
+  
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-[var(--text-primary)]">{persona.label} Dashboard</h2>
+        <p className="text-sm text-[var(--text-secondary)] mt-1">{persona.role} · {widgets.length} widgets · Synthetic fixture data</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {widgets.map(widget => (
+          <div key={widget.code} className={widget.size === 'lg' ? 'sm:col-span-2' : widget.size === 'xl' ? 'sm:col-span-2 lg:col-span-2' : ''}>
+            <PreviewWidget widget={widget} onFeedback={onFeedback} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackDrawer({ widgetCode, feedback, onClose, onSubmit }: {
+  widgetCode: string;
+  feedback: FeedbackEntry[];
+  onClose: () => void;
+  onSubmit: (comment: string, decision: 'accepted' | 'change_requested' | 'noted') => void;
+}) {
+  const [comment, setComment] = useState('');
+  const [decision, setDecision] = useState<'accepted' | 'change_requested' | 'noted'>('noted');
+  const widgetFeedback = feedback.filter(f => f.widgetCode === widgetCode);
+  const widget = widgetRegistry.find(w => w.code === widgetCode);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-[var(--text-primary)]">Widget Feedback</h3>
+            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{widget?.title} · {widgetCode}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--surface-hover)]">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Widget Info */}
+          <div className="p-4 rounded-lg bg-[var(--surface-hover)]">
+            <p className="text-xs text-[var(--text-tertiary)]">Future Data Source</p>
+            <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{widget?.futureSourcePrompt} · {widget?.futureApi}</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-2">KPI Codes: {widget?.kpiCodes.join(', ')}</p>
+          </div>
+
+          {/* Existing Feedback */}
+          {widgetFeedback.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Previous Feedback</h4>
+              <div className="space-y-2">
+                {widgetFeedback.map(fb => (
+                  <div key={fb.id} className="p-3 rounded-lg border border-[var(--border)]">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-[var(--text-primary)]">{fb.reviewer}</span>
+                      <StatusChip status={fb.decision.replace('_', ' ')} variant={fb.decision === 'accepted' ? 'success' : fb.decision === 'change_requested' ? 'warning' : 'neutral'} />
+                    </div>
+                    <p className="text-sm text-[var(--text-secondary)]">{fb.comment}</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">{new Date(fb.createdAt).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* New Feedback Form */}
+          <div>
+            <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Add Your Feedback</h4>
+            <textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="Your comments, suggestions, or concerns..."
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--input-bg,var(--surface))] text-[var(--text-primary)] resize-none"
+              rows={4}
+            />
+            <div className="flex items-center gap-2 mt-3">
+              <select
+                value={decision}
+                onChange={e => setDecision(e.target.value as any)}
+                className="px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-primary)]"
+              >
+                <option value="accepted">Accept Layout</option>
+                <option value="change_requested">Request Changes</option>
+                <option value="noted">Note for Later</option>
+              </select>
+              <button
+                onClick={() => { if (comment.trim()) { onSubmit(comment, decision); setComment(''); } }}
+                disabled={!comment.trim()}
+                className="px-4 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg font-medium hover:bg-[var(--brand-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit Feedback
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WidgetStatusBoard() {
+  const statusCounts = {
+    PREVIEW: widgetRegistry.filter(w => w.status === 'PREVIEW').length,
+    LIVE: widgetRegistry.filter(w => w.status === 'LIVE').length,
+    PROMOTED: widgetRegistry.filter(w => w.status === 'PROMOTED').length,
+    RETIRED: widgetRegistry.filter(w => w.status === 'RETIRED').length,
+  };
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto">
+      <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Widget Status Board</h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-6">Technical Console · Widget lifecycle tracking (PREVIEW → LIVE → PROMOTED → RETIRED)</p>
+
+      {/* Status Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {Object.entries(statusCounts).map(([status, count]) => (
+          <div key={status} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs text-[var(--text-tertiary)] uppercase">{status}</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{count}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Widget List */}
+      <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Widget</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Personas</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Source Part</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Future API</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Data Mode</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {widgetRegistry.map(w => (
+                <tr key={w.code} className="hover:bg-[var(--surface-hover)]">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-[var(--text-primary)]">{w.title}</p>
+                    <p className="text-xs text-[var(--text-tertiary)]">{w.code}</p>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{w.personas.length}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-[var(--text-secondary)]">{w.futureSourcePrompt}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-[var(--text-tertiary)] truncate max-w-[200px]">{w.futureApi}</td>
+                  <td className="px-4 py-3 text-center">
+                    <StatusChip status={w.status} variant={w.status === 'PREVIEW' ? 'warning' : w.status === 'LIVE' ? 'info' : w.status === 'PROMOTED' ? 'success' : 'neutral'} />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-xs px-2 py-0.5 rounded ${w.dataMode === 'fixture' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {w.dataMode}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewLayout() {
+  const [selectedPersona, setSelectedPersona] = useState<PersonaKey>('cfo');
+  const [deviceFrame, setDeviceFrame] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [feedbackWidget, setFeedbackWidget] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackEntry[]>(initialFeedback);
+  const [showStatusBoard, setShowStatusBoard] = useState(false);
+  const navigate = useNavigate();
+
+  const currentPersona = personas.find(p => p.key === selectedPersona)!;
+
+  const handleSubmitFeedback = (comment: string, decision: 'accepted' | 'change_requested' | 'noted') => {
+    if (!feedbackWidget) return;
+    const newFeedback: FeedbackEntry = {
+      id: `FB-${Date.now()}`,
+      widgetCode: feedbackWidget,
+      reviewer: 'Stakeholder',
+      comment,
+      decision,
+      createdAt: new Date().toISOString(),
+    };
+    setFeedback([...feedback, newFeedback]);
+    setFeedbackWidget(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--surface-bg)] flex flex-col">
+      {/* PREVIEW Banner */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 text-center text-sm font-semibold shadow-md">
+        <span className="inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+          PREVIEW ENVIRONMENT · Synthetic Data Only · Not Production
+        </span>
+      </div>
+
+      {/* Preview Shell Bar */}
+      <header className="h-14 flex items-center px-4 gap-3 bg-[var(--shell-bg)] text-[var(--shell-text)] shadow-md shrink-0">
+        <button onClick={() => navigate('/')} className="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Back to main">
+          <ChevronLeft size={20} />
+        </button>
+        
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center">
+            <Eye size={18} className="text-white" />
+          </div>
+          <span className="font-semibold text-sm">ERP Preview</span>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Device Frame Toggle */}
+        <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
+          <button
+            onClick={() => setDeviceFrame('mobile')}
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors ${deviceFrame === 'mobile' ? 'bg-white text-[var(--shell-bg)]' : 'hover:bg-white/10'}`}
+          >
+            Mobile
+          </button>
+          <button
+            onClick={() => setDeviceFrame('tablet')}
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors ${deviceFrame === 'tablet' ? 'bg-white text-[var(--shell-bg)]' : 'hover:bg-white/10'}`}
+          >
+            Tablet
+          </button>
+          <button
+            onClick={() => setDeviceFrame('desktop')}
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors ${deviceFrame === 'desktop' ? 'bg-white text-[var(--shell-bg)]' : 'hover:bg-white/10'}`}
+          >
+            Desktop
+          </button>
+        </div>
+
+        {/* Widget Status Board */}
+        <button
+          onClick={() => setShowStatusBoard(!showStatusBoard)}
+          className="px-3 py-2 text-sm rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2"
+        >
+          <Activity size={16} />
+          <span className="hidden sm:inline">Status Board</span>
+        </button>
+      </header>
+
+      {/* Persona Switcher */}
+      <div className="bg-[var(--surface)] border-b border-[var(--border)] px-4 py-3 overflow-x-auto shrink-0">
+        <div className="flex items-center gap-2 min-w-max">
+          <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wide mr-2">Persona:</span>
+          {personas.map(p => (
+            <button
+              key={p.key}
+              onClick={() => setSelectedPersona(p.key)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                selectedPersona === p.key
+                  ? 'bg-[var(--brand-primary)] text-white font-medium shadow-md'
+                  : 'bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--surface-active)]'
+              }`}
+            >
+              <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${p.color} flex items-center justify-center text-white text-xs font-bold`}>
+                {p.avatar}
+              </div>
+              <span className="whitespace-nowrap">{p.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-start justify-center overflow-auto py-6 px-4">
+        <div
+          className={`transition-all duration-300 ${
+            deviceFrame === 'mobile' ? 'w-[360px]' : deviceFrame === 'tablet' ? 'w-[820px]' : 'w-full max-w-7xl'
+          }`}
+          style={deviceFrame !== 'desktop' ? {
+            border: '8px solid var(--border-strong)',
+            borderRadius: '24px',
+            backgroundColor: 'var(--surface-bg)',
+            minHeight: deviceFrame === 'mobile' ? '640px' : '1024px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          } : {}}
+        >
+          {showStatusBoard ? (
+            <WidgetStatusBoard />
+          ) : (
+            <PreviewDashboard persona={currentPersona} onFeedback={setFeedbackWidget} />
+          )}
+        </div>
+      </div>
+
+      {/* Feedback Drawer */}
+      {feedbackWidget && (
+        <FeedbackDrawer
+          widgetCode={feedbackWidget}
+          feedback={feedback}
+          onClose={() => setFeedbackWidget(null)}
+          onSubmit={handleSubmitFeedback}
+        />
+      )}
     </div>
   );
 }
@@ -2080,6 +2510,7 @@ function AppLayout() {
             <Route path="/preferences" element={<PreferencesPage />} />
             <Route path="/_tech/program/baseline" element={<TechConsoleBaseline />} />
             <Route path="/_tech/audit" element={<AuditDashboard />} />
+            <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

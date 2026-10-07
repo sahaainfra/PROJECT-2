@@ -100,7 +100,7 @@ export function DesignSystemModule() {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-[var(--text-primary)]">Design Tokens</h1>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">Foundation of the design system · Colors, typography, spacing, and more</p>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Centralized design tokens for consistent UI across the application</p>
             </div>
 
             {/* Colors */}
@@ -126,7 +126,6 @@ export function DesignSystemModule() {
                       <div key={name} className="p-3 rounded-lg border border-[var(--border)]">
                         <div className="w-full h-12 rounded mb-2" style={{ backgroundColor: value }} />
                         <p className="text-xs font-medium text-[var(--text-primary)] capitalize">{name}</p>
-                        <p className="text-xs font-mono text-[var(--text-tertiary)]">{value}</p>
                       </div>
                     ))}
                   </div>
@@ -139,13 +138,20 @@ export function DesignSystemModule() {
               <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Typography</h3>
               <div className="space-y-4">
                 <div>
-                  <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">Font Family</p>
-                  <p className="text-sm text-[var(--text-primary)] font-mono">{designTokens.typography.fontFamily}</p>
+                  <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">Font Families</p>
+                  <div className="space-y-2">
+                    {Object.entries(designTokens.typography.fontFamily).map(([name, value]) => (
+                      <div key={name} className="flex items-center gap-4 p-2 rounded-lg bg-[var(--surface-hover)]">
+                        <span className="text-xs font-mono text-[var(--text-tertiary)] w-24">{name}</span>
+                        <span className="text-sm text-[var(--text-primary)]" style={{ fontFamily: value }}>Sample Text</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">Font Sizes</p>
                   <div className="space-y-2">
-                    {Object.entries(designTokens.typography.sizes).map(([name, value]) => (
+                    {Object.entries(designTokens.typography.fontSize).map(([name, value]) => (
                       <div key={name} className="flex items-center gap-4 p-2 rounded-lg bg-[var(--surface-hover)]">
                         <span className="text-xs font-mono text-[var(--text-tertiary)] w-16">{name}</span>
                         <span className="text-sm text-[var(--text-primary)]" style={{ fontSize: value }}>Sample Text</span>
@@ -157,7 +163,7 @@ export function DesignSystemModule() {
                 <div>
                   <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2">Font Weights</p>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {Object.entries(designTokens.typography.weights).map(([name, value]) => (
+                    {Object.entries(designTokens.typography.fontWeight).map(([name, value]) => (
                       <div key={name} className="p-3 rounded-lg bg-[var(--surface-hover)]">
                         <p className="text-sm text-[var(--text-primary)] capitalize" style={{ fontWeight: value }}>Sample</p>
                         <p className="text-xs font-mono text-[var(--text-tertiary)] mt-1">{name} ({value})</p>
@@ -196,11 +202,11 @@ export function DesignSystemModule() {
               </div>
             </div>
 
-            {/* Shadows */}
+            {/* Elevation */}
             <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
               <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Elevation / Shadows</h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {Object.entries(designTokens.shadows).map(([name, value]) => (
+                {Object.entries(designTokens.elevation).map(([name, value]) => (
                   <div key={name} className="p-4 rounded-lg bg-[var(--surface)]" style={{ boxShadow: value }}>
                     <p className="text-xs font-medium text-[var(--text-primary)] capitalize mb-1">{name}</p>
                     <p className="text-xs font-mono text-[var(--text-tertiary)]">{value === 'none' ? 'none' : 'shadow'}</p>
@@ -230,14 +236,14 @@ export function DesignSystemModule() {
             </div>
 
             {/* Components by Category */}
-            {['basic', 'form', 'data', 'feedback', 'navigation', 'layout', 'protocol'].map(category => {
+            {['buttons', 'inputs', 'data-display', 'navigation', 'feedback', 'layout', 'protocol'].map(category => {
               const categoryComponents = getComponentsByCategory(category);
               if (categoryComponents.length === 0) return null;
 
               return (
                 <div key={category} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
                   <div className="p-4 border-b border-[var(--border)] bg-[var(--surface-hover)]">
-                    <h3 className="font-semibold text-sm text-[var(--text-primary)] capitalize">{category} Components</h3>
+                    <h3 className="font-semibold text-sm text-[var(--text-primary)] capitalize">{category}</h3>
                   </div>
                   <div className="divide-y divide-[var(--divider)]">
                     {categoryComponents.map(component => (
@@ -247,24 +253,16 @@ export function DesignSystemModule() {
                         onClick={() => setSelectedComponent(component.id)}
                       >
                         <div className="w-10 h-10 rounded-lg bg-[var(--surface-hover)] flex items-center justify-center shrink-0">
-                          <Icon name={
-                            category === 'basic' ? 'box' :
-                            category === 'form' ? 'form' :
-                            category === 'data' ? 'table' :
-                            category === 'feedback' ? 'bell' :
-                            category === 'navigation' ? 'navigation' :
-                            category === 'layout' ? 'layout' :
-                            'shield'
-                          } size={20} className="text-[var(--text-tertiary)]" />
+                          <Icon name="box" size={20} className="text-[var(--text-tertiary)]" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[var(--text-primary)]">{component.name}</p>
                           <p className="text-xs text-[var(--text-tertiary)] truncate">{component.description}</p>
                         </div>
                         <div className="hidden sm:flex items-center gap-2">
-                          <span className="text-xs text-[var(--text-secondary)]">{component.variants.length} variants</span>
+                          <span className="text-xs text-[var(--text-secondary)]">{component.variants?.length || 0} variants</span>
                           <span className="text-xs text-[var(--text-secondary)]">·</span>
-                          <span className="text-xs text-[var(--text-secondary)]">{component.states.length} states</span>
+                          <span className="text-xs text-[var(--text-secondary)]">{component.states?.length || 0} states</span>
                         </div>
                       </div>
                     ))}
@@ -300,7 +298,7 @@ export function DesignSystemModule() {
                     <div>
                       <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Variants</h3>
                       <div className="flex flex-wrap gap-2">
-                        {component.variants.map(variant => (
+                        {component.variants?.map(variant => (
                           <span key={variant} className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 capitalize">{variant}</span>
                         ))}
                       </div>
@@ -309,7 +307,7 @@ export function DesignSystemModule() {
                     <div>
                       <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">States</h3>
                       <div className="flex flex-wrap gap-2">
-                        {component.states.map(state => (
+                        {component.states?.map(state => (
                           <span key={state} className="text-xs px-2 py-1 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)] capitalize">{state}</span>
                         ))}
                       </div>
@@ -319,7 +317,7 @@ export function DesignSystemModule() {
                   <div className="mt-6 pt-6 border-t border-[var(--divider)]">
                     <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Accessibility</h3>
                     <div className="space-y-2">
-                      {component.accessibility.map((item, idx) => (
+                      {component.accessibility?.map((item, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <CheckCircle size={16} className="text-emerald-500" />
                           <span className="text-sm text-[var(--text-secondary)]">{item}</span>
@@ -333,15 +331,15 @@ export function DesignSystemModule() {
                     <div className="grid grid-cols-3 gap-4">
                       <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
                         <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Mobile</p>
-                        <p className="text-xs text-[var(--text-secondary)]">{component.responsive.mobile}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{component.responsive?.mobile ? '✓ Supported' : '✗ Not supported'}</p>
                       </div>
                       <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
                         <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Tablet</p>
-                        <p className="text-xs text-[var(--text-secondary)]">{component.responsive.tablet}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{component.responsive?.tablet ? '✓ Supported' : '✗ Not supported'}</p>
                       </div>
                       <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
                         <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Desktop</p>
-                        <p className="text-xs text-[var(--text-secondary)]">{component.responsive.desktop}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{component.responsive?.desktop ? '✓ Supported' : '✗ Not supported'}</p>
                       </div>
                     </div>
                   </div>
@@ -356,7 +354,7 @@ export function DesignSystemModule() {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-[var(--text-primary)]">Page Templates</h1>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">{templateStats.total} templates · {templateStats.byUseCase} use cases covered</p>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{templateStats.total} templates · {Object.keys(templateStats.byUseCase).length} use cases covered</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -398,48 +396,46 @@ export function DesignSystemModule() {
 
               return (
                 <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-6">
-                  <div className="flex items-start justify-between mb-4">
+                  <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">{template.name}</h2>
+                  <p className="text-sm text-[var(--text-secondary)] mb-6">{template.description}</p>
+
+                  <div className="space-y-6">
                     <div>
-                      <h2 className="text-xl font-bold text-[var(--text-primary)]">{template.name}</h2>
-                      <p className="text-sm text-[var(--text-secondary)] mt-1">{template.description}</p>
+                      <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Components Used</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {template.components.map(comp => (
+                          <span key={comp} className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">{comp}</span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="mt-6">
-                    <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Components Used</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {template.components.map(comp => (
-                        <span key={comp} className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">{comp}</span>
-                      ))}
+                    <div>
+                      <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Use Cases</h3>
+                      <div className="space-y-2">
+                        {template.useCases.map((useCase, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--surface-hover)]">
+                            <CheckCircle size={16} className="text-emerald-500" />
+                            <span className="text-sm text-[var(--text-secondary)]">{useCase}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="mt-6 pt-6 border-t border-[var(--divider)]">
-                    <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Use Cases</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {template.useCases.map((useCase, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--surface-hover)]">
-                          <CheckCircle size={16} className="text-emerald-500" />
-                          <span className="text-sm text-[var(--text-secondary)]">{useCase}</span>
+                    <div>
+                      <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Responsive</h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
+                          <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Mobile</p>
+                          <p className="text-xs text-[var(--text-secondary)]">{template.responsive ? '✓ Supported' : '✗ Not supported'}</p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-6 pt-6 border-t border-[var(--divider)]">
-                    <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Responsive Layout</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
-                        <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Mobile</p>
-                        <p className="text-xs text-[var(--text-secondary)]">{template.responsive.mobile}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
-                        <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Tablet</p>
-                        <p className="text-xs text-[var(--text-secondary)]">{template.responsive.tablet}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
-                        <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Desktop</p>
-                        <p className="text-xs text-[var(--text-secondary)]">{template.responsive.desktop}</p>
+                        <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
+                          <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Tablet</p>
+                          <p className="text-xs text-[var(--text-secondary)]">{template.responsive ? '✓ Supported' : '✗ Not supported'}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-[var(--surface-hover)]">
+                          <p className="text-xs font-medium text-[var(--text-tertiary)] mb-1">Desktop</p>
+                          <p className="text-xs text-[var(--text-secondary)]">{template.responsive ? '✓ Supported' : '✗ Not supported'}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -454,34 +450,9 @@ export function DesignSystemModule() {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-[var(--text-primary)]">Protocol Components</h1>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">Design system components for protocol controls and compliance</p>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Components for protocol control and compliance tracking</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {components.filter(c => c.category === 'protocol').map(component => (
-                <div key={component.id} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
-                      <Icon name="shield" size={20} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm text-[var(--text-primary)]">{component.name}</h3>
-                      <p className="text-xs text-[var(--text-tertiary)]">{component.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {component.variants.map(variant => (
-                      <span key={variant} className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)] capitalize">{variant}</span>
-                    ))}
-                  </div>
-                  <div className="pt-3 border-t border-[var(--divider)]">
-                    <p className="text-xs text-[var(--text-tertiary)]">{component.states.length} states · {component.accessibility.length} a11y features</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Protocol Control Point */}
             <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
               <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4 flex items-center gap-2">
                 <Shield size={16} className="text-[var(--brand-primary)]" />
@@ -494,6 +465,30 @@ export function DesignSystemModule() {
                 <StatusChip status={protocolControlPoint.status} variant="warning" />
               </div>
             </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Protocol Components</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {getComponentsByCategory('protocol').map(component => (
+                  <div key={component.id} className="px-4 py-3 flex items-center gap-4 hover:bg-[var(--surface-hover)]">
+                    <div className="w-10 h-10 rounded-lg bg-[var(--surface-hover)] flex items-center justify-center shrink-0">
+                      <Icon name="shield" size={20} className="text-[var(--brand-primary)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{component.name}</p>
+                      <p className="text-xs text-[var(--text-tertiary)] truncate">{component.description}</p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2">
+                      <span className="text-xs text-[var(--text-secondary)]">{component.variants?.length || 0} variants</span>
+                      <span className="text-xs text-[var(--text-secondary)]">·</span>
+                      <span className="text-xs text-[var(--text-secondary)]">{component.states?.length || 0} states</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -501,50 +496,70 @@ export function DesignSystemModule() {
         {activeTab === 'accessibility' && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Accessibility Guidelines</h1>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">WCAG 2.1 AA compliance · Inclusive design principles</p>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Accessibility</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">WCAG 2.1 AA compliance and accessibility features</p>
             </div>
 
             <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
-              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Core Principles</h3>
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Accessibility Standards</h3>
               <div className="space-y-3">
-                {[
-                  { title: 'Keyboard Navigation', description: 'All interactive elements accessible via keyboard' },
-                  { title: 'Screen Reader Support', description: 'ARIA labels and roles for assistive technology' },
-                  { title: 'Color Contrast', description: 'Minimum 4.5:1 ratio for text, 3:1 for large text' },
-                  { title: 'Focus Indicators', description: 'Visible focus rings for keyboard users' },
-                  { title: 'Touch Targets', description: 'Minimum 44x44px for mobile interactions' },
-                  { title: 'Reduced Motion', description: 'Respect prefers-reduced-motion preference' },
-                ].map((principle, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--surface-hover)]">
-                    <CheckCircle size={20} className="text-emerald-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">{principle.title}</p>
-                      <p className="text-xs text-[var(--text-secondary)] mt-1">{principle.description}</p>
-                    </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                  <CheckCircle size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-900">WCAG 2.1 AA Compliance</p>
+                    <p className="text-xs text-emerald-700 mt-1">All components meet WCAG 2.1 AA accessibility standards</p>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <CheckCircle size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Keyboard Navigation</p>
+                    <p className="text-xs text-blue-700 mt-1">Full keyboard support for all interactive components</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50 border border-purple-200">
+                  <CheckCircle size={20} className="text-purple-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-purple-900">Screen Reader Support</p>
+                    <p className="text-xs text-purple-700 mt-1">ARIA labels and roles for screen reader compatibility</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <CheckCircle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">Focus Management</p>
+                    <p className="text-xs text-amber-700 mt-1">Visible focus indicators and proper focus order</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                  <CheckCircle size={20} className="text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-indigo-900">Color Contrast</p>
+                    <p className="text-xs text-indigo-700 mt-1">Minimum 4.5:1 contrast ratio for text, 3:1 for large text</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
-              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Testing Checklist</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  'Tab through all interactive elements',
-                  'Use screen reader (VoiceOver/NVDA)',
-                  'Test with zoom at 200%',
-                  'Verify color contrast ratios',
-                  'Check focus visibility',
-                  'Test with keyboard only',
-                  'Verify ARIA labels',
-                  'Test reduced motion',
-                  'Check touch target sizes',
-                  'Verify error announcements',
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--surface-hover)]">
-                    <input type="checkbox" className="w-4 h-4 rounded" />
-                    <span className="text-sm text-[var(--text-secondary)]">{item}</span>
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Accessibility Features by Component</h3>
+              <div className="space-y-3">
+                {components.filter(c => c.accessibility && c.accessibility.length > 0).slice(0, 10).map(component => (
+                  <div key={component.id} className="p-3 rounded-lg border border-[var(--border)]">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{component.name}</p>
+                      <span className="text-xs text-[var(--text-tertiary)]">{component.accessibility?.length || 0} features</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {component.accessibility?.slice(0, 3).map((feature, idx) => (
+                        <span key={idx} className="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">{feature}</span>
+                      ))}
+                      {(component.accessibility?.length || 0) > 3 && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">
+                          +{(component.accessibility?.length || 0) - 3} more
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

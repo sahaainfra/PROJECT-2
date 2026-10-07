@@ -1,112 +1,152 @@
-// Part 19 — Design System Tokens, Components & Patterns
-// Enterprise UI/UX foundation for the Construction ERP
+// Part 19 — Design System Tokens & Component Library
+// Comprehensive enterprise design tokens and reusable components
 
-// ===== DESIGN TOKENS =====
+// ============================================================================
+// DESIGN TOKENS
+// ============================================================================
+
 export const designTokens = {
+  // Colors - Semantic
   colors: {
-    // Brand colors
+    // Brand
     brand: {
-      primary: '#1B5E8C',
-      primaryHover: '#154B70',
-      primaryActive: '#0F3A57',
-      secondary: '#2E7D5B',
-      accent: '#D4740B',
+      primary: 'var(--color-brand-primary, #1B5E8C)',
+      primaryHover: 'var(--color-brand-primary-hover, #154B70)',
+      primaryActive: 'var(--color-brand-primary-active, #0F3A57)',
+      secondary: 'var(--color-brand-secondary, #2E7D5B)',
+      accent: 'var(--color-brand-accent, #D4740B)',
     },
-    // Semantic colors
+    // Semantic
     semantic: {
-      success: '#0D7A3E',
-      successBg: '#E8F5EE',
-      warning: '#B8860B',
-      warningBg: '#FFF8E1',
-      error: '#C62828',
-      errorBg: '#FFEBEE',
-      info: '#1565C0',
-      infoBg: '#E3F2FD',
-      critical: '#880E4F',
-      criticalBg: '#FCE4EC',
+      success: 'var(--color-semantic-success, #0D7A3E)',
+      successBg: 'var(--color-semantic-success-bg, #E8F5EE)',
+      warning: 'var(--color-semantic-warning, #B8860B)',
+      warningBg: 'var(--color-semantic-warning-bg, #FFF8E1)',
+      error: 'var(--color-semantic-error, #C62828)',
+      errorBg: 'var(--color-semantic-error-bg, #FFEBEE)',
+      info: 'var(--color-semantic-info, #1565C0)',
+      infoBg: 'var(--color-semantic-info-bg, #E3F2FD)',
+      critical: 'var(--color-semantic-critical, #880E4F)',
+      criticalBg: 'var(--color-semantic-critical-bg, #FCE4EC)',
     },
-    // Surface colors
+    // Surface
     surface: {
-      background: '#F5F6FA',
-      surface: '#FFFFFF',
-      surfaceHover: '#F0F2F7',
-      surfaceActive: '#E8EBF2',
-      elevated: '#FFFFFF',
-      overlay: 'rgba(0, 0, 0, 0.4)',
-      shell: '#1B2A4A',
-      sidebar: '#FFFFFF',
-      card: '#FFFFFF',
-      input: '#FFFFFF',
-      border: '#D8DCE6',
-      borderStrong: '#B0B8C9',
-      divider: '#E8EBF2',
+      background: 'var(--color-surface-background, #F5F6FA)',
+      surface: 'var(--color-surface-surface, #FFFFFF)',
+      surfaceHover: 'var(--color-surface-hover, #F0F2F7)',
+      surfaceActive: 'var(--color-surface-active, #E8EBF2)',
+      elevated: 'var(--color-surface-elevated, #FFFFFF)',
+      overlay: 'var(--color-surface-overlay, rgba(0, 0, 0, 0.4))',
+      shell: 'var(--color-surface-shell, #1B2A4A)',
+      sidebar: 'var(--color-surface-sidebar, #FFFFFF)',
+      card: 'var(--color-surface-card, #FFFFFF)',
+      input: 'var(--color-surface-input, #FFFFFF)',
+      border: 'var(--color-surface-border, #D8DCE6)',
+      borderStrong: 'var(--color-surface-border-strong, #B0B8C9)',
+      divider: 'var(--color-surface-divider, #E8EBF2)',
     },
-    // Text colors
+    // Text
     text: {
-      primary: '#1A1F36',
-      secondary: '#4A5568',
-      tertiary: '#718096',
-      disabled: '#A0AEC0',
-      inverse: '#FFFFFF',
-      link: '#1B5E8C',
-      linkHover: '#0F3A57',
-      onBrand: '#FFFFFF',
+      primary: 'var(--color-text-primary, #1A1F36)',
+      secondary: 'var(--color-text-secondary, #4A5568)',
+      tertiary: 'var(--color-text-tertiary, #718096)',
+      disabled: 'var(--color-text-disabled, #A0AEC0)',
+      inverse: 'var(--color-text-inverse, #FFFFFF)',
+      link: 'var(--color-text-link, #1B5E8C)',
+      linkHover: 'var(--color-text-link-hover, #0F3A57)',
+      onBrand: 'var(--color-text-on-brand, #FFFFFF)',
     },
   },
+
+  // Typography
   typography: {
-    fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontFamilyDevanagari: "'IBM Plex Sans Devanagari', 'Noto Sans Devanagari', sans-serif",
-    mono: "'IBM Plex Mono', 'Fira Code', monospace",
-    sizes: {
-      xs: '0.75rem',
-      sm: '0.8125rem',
-      md: '0.875rem',
-      lg: '1rem',
-      xl: '1.25rem',
-      xxl: '1.5rem',
-      display: '2rem',
+    fontFamily: {
+      sans: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      devanagari: "'IBM Plex Sans Devanagari', 'Noto Sans Devanagari', sans-serif",
+      mono: "'IBM Plex Mono', 'Fira Code', monospace",
     },
-    weights: {
+    fontSize: {
+      xs: '0.75rem',    // 12px
+      sm: '0.8125rem',  // 13px
+      md: '0.875rem',   // 14px
+      lg: '1rem',       // 16px
+      xl: '1.25rem',    // 20px
+      xxl: '1.5rem',    // 24px
+      display: '2rem',  // 32px
+    },
+    fontWeight: {
       light: 300,
       regular: 400,
       medium: 500,
       semibold: 600,
       bold: 700,
     },
-    lineHeights: {
+    lineHeight: {
       tight: 1.25,
       normal: 1.5,
       relaxed: 1.75,
     },
   },
+
+  // Spacing (4pt grid)
   spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '16px',
-    lg: '24px',
-    xl: '32px',
-    xxl: '48px',
+    0: '0',
+    1: '0.25rem',   // 4px
+    2: '0.5rem',    // 8px
+    3: '0.75rem',   // 12px
+    4: '1rem',      // 16px
+    5: '1.25rem',   // 20px
+    6: '1.5rem',    // 24px
+    8: '2rem',      // 32px
+    10: '2.5rem',   // 40px
+    12: '3rem',     // 48px
+    16: '4rem',     // 64px
+    20: '5rem',     // 80px
   },
+
+  // Border Radius
   radius: {
     none: '0',
-    sm: '4px',
-    md: '8px',
-    lg: '12px',
-    xl: '16px',
+    sm: '0.25rem',   // 4px
+    md: '0.5rem',    // 8px
+    lg: '0.75rem',   // 12px
+    xl: '1rem',      // 16px
     full: '9999px',
   },
-  shadows: {
+
+  // Elevation (Shadows)
+  elevation: {
     none: 'none',
-    sm: '0 1px 2px rgba(0,0,0,0.05)',
-    md: '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04)',
-    lg: '0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04)',
-    xl: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+    sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    xxl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   },
+
+  // Motion
+  motion: {
+    duration: {
+      fast: '150ms',
+      normal: '250ms',
+      slow: '400ms',
+    },
+    easing: {
+      easeOut: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+    },
+  },
+
+  // Breakpoints
   breakpoints: {
     mobile: '360px',
     tablet: '820px',
     desktop: '1440px',
+    wide: '1920px',
   },
+
+  // Z-Index
   zIndex: {
     base: 0,
     dropdown: 100,
@@ -118,502 +158,349 @@ export const designTokens = {
   },
 };
 
-// ===== COMPONENT CATALOGUE =====
-export interface Component {
-  id: string;
+// ============================================================================
+// COMPONENT TYPES
+// ============================================================================
+
+export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+export type ButtonSize = 'sm' | 'md' | 'lg';
+export type InputSize = 'sm' | 'md' | 'lg';
+export type StatusVariant = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'critical';
+export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
+export type DensityMode = 'comfortable' | 'compact';
+
+// ============================================================================
+// COMPONENT INTERFACES
+// ============================================================================
+
+export interface ButtonProps {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  disabled?: boolean;
+  loading?: boolean;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+
+export interface InputProps {
+  type?: 'text' | 'number' | 'email' | 'password' | 'date' | 'search';
+  size?: InputSize;
+  placeholder?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  disabled?: boolean;
+  error?: string;
+  helpText?: string;
+  label?: string;
+  required?: boolean;
+}
+
+export interface StatusBadgeProps {
+  status: string;
+  variant: StatusVariant;
+  icon?: React.ReactNode;
+}
+
+export interface AlertProps {
+  variant: AlertVariant;
+  title?: string;
+  children: React.ReactNode;
+  onClose?: () => void;
+}
+
+export interface DataTableColumn<T = any> {
+  key: keyof T;
+  label: string;
+  sortable?: boolean;
+  filterable?: boolean;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
+  render?: (value: any, row: T) => React.ReactNode;
+}
+
+export interface DataTableProps<T = any> {
+  columns: DataTableColumn<T>[];
+  data: T[];
+  loading?: boolean;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (size: number) => void;
+  };
+  sorting?: {
+    key: keyof T;
+    direction: 'asc' | 'desc';
+    onSort: (key: keyof T) => void;
+  };
+  selection?: {
+    selected: string[];
+    onSelect: (ids: string[]) => void;
+  };
+  onRowClick?: (row: T) => void;
+}
+
+export interface FormFieldProps {
+  label: string;
   name: string;
-  category: 'basic' | 'form' | 'data' | 'feedback' | 'navigation' | 'layout' | 'protocol';
-  description: string;
-  variants: string[];
-  states: string[];
-  accessibility: string[];
-  responsive: {
-    mobile: string;
-    tablet: string;
-    desktop: string;
+  type?: 'text' | 'number' | 'email' | 'password' | 'date' | 'select' | 'textarea' | 'checkbox';
+  value?: any;
+  onChange?: (value: any) => void;
+  error?: string;
+  helpText?: string;
+  required?: boolean;
+  disabled?: boolean;
+  options?: { label: string; value: any }[];
+}
+
+export interface GateStatusPanelProps {
+  stages: {
+    name: string;
+    status: 'pass' | 'warn' | 'fail' | 'pending';
+    message?: string;
+  }[];
+}
+
+export interface ExceptionRequestDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (reason: string, evidence: string[]) => void;
+  context: {
+    entityType: string;
+    entityId: string;
+    action: string;
   };
 }
 
-export const components: Component[] = [
-  // Basic Components
-  {
-    id: 'button',
-    name: 'Button',
-    category: 'basic',
-    description: 'Primary action trigger with multiple variants',
-    variants: ['primary', 'secondary', 'tertiary', 'danger', 'ghost'],
-    states: ['default', 'hover', 'focus', 'active', 'disabled', 'loading'],
-    accessibility: ['Keyboard navigable', 'ARIA labels', 'Focus visible'],
-    responsive: {
-      mobile: 'Full width on mobile',
-      tablet: 'Auto width',
-      desktop: 'Auto width',
-    },
-  },
-  {
-    id: 'badge',
-    name: 'Badge',
-    category: 'basic',
-    description: 'Status indicator with semantic colors',
-    variants: ['success', 'warning', 'error', 'info', 'neutral', 'critical'],
-    states: ['default', 'with-icon', 'with-count'],
-    accessibility: ['Screen reader text', 'Color contrast AA'],
-    responsive: {
-      mobile: 'Compact size',
-      tablet: 'Standard size',
-      desktop: 'Standard size',
-    },
-  },
-  {
-    id: 'icon',
-    name: 'Icon',
-    category: 'basic',
-    description: 'Semantic icon system with consistent sizing',
-    variants: ['sm', 'md', 'lg', 'xl'],
-    states: ['default', 'hover', 'active'],
-    accessibility: ['Alt text', 'ARIA labels', 'Focus indicators'],
-    responsive: {
-      mobile: '20px minimum',
-      tablet: '24px standard',
-      desktop: '24px standard',
-    },
-  },
-
-  // Form Components
-  {
-    id: 'input',
-    name: 'Input',
-    category: 'form',
-    description: 'Text input with validation and help text',
-    variants: ['text', 'number', 'email', 'password', 'search'],
-    states: ['default', 'focus', 'error', 'disabled', 'readonly'],
-    accessibility: ['Label association', 'Error announcements', 'Autocomplete'],
-    responsive: {
-      mobile: 'Full width',
-      tablet: 'Auto width',
-      desktop: 'Auto width',
-    },
-  },
-  {
-    id: 'select',
-    name: 'Select',
-    category: 'form',
-    description: 'Dropdown selection with search and multi-select',
-    variants: ['single', 'multi', 'searchable', 'grouped'],
-    states: ['default', 'open', 'disabled', 'loading'],
-    accessibility: ['Keyboard navigation', 'ARIA combobox', 'Option announcements'],
-    responsive: {
-      mobile: 'Full screen modal',
-      tablet: 'Dropdown',
-      desktop: 'Dropdown',
-    },
-  },
-  {
-    id: 'checkbox',
-    name: 'Checkbox',
-    category: 'form',
-    description: 'Multi-select toggle with label',
-    variants: ['default', 'indeterminate'],
-    states: ['unchecked', 'checked', 'indeterminate', 'disabled'],
-    accessibility: ['Label association', 'Space key toggle', 'ARIA checked'],
-    responsive: {
-      mobile: '44px touch target',
-      tablet: 'Standard size',
-      desktop: 'Standard size',
-    },
-  },
-  {
-    id: 'datepicker',
-    name: 'Date Picker',
-    category: 'form',
-    description: 'Date selection with financial year support',
-    variants: ['single', 'range', 'with-time'],
-    states: ['default', 'open', 'disabled', 'error'],
-    accessibility: ['Calendar navigation', 'Keyboard shortcuts', 'Date announcements'],
-    responsive: {
-      mobile: 'Full screen calendar',
-      tablet: 'Popover',
-      desktop: 'Popover',
-    },
-  },
-  {
-    id: 'textarea',
-    name: 'Textarea',
-    category: 'form',
-    description: 'Multi-line text input with character count',
-    variants: ['default', 'resizable', 'auto-grow'],
-    states: ['default', 'focus', 'error', 'disabled'],
-    accessibility: ['Label association', 'Character count', 'Error announcements'],
-    responsive: {
-      mobile: 'Full width',
-      tablet: 'Auto width',
-      desktop: 'Auto width',
-    },
-  },
-
-  // Data Display Components
-  {
-    id: 'datatable',
-    name: 'DataTable',
-    category: 'data',
-    description: 'Advanced data grid with sorting, filtering, pagination',
-    variants: ['default', 'compact', 'expandable', 'selectable'],
-    states: ['loading', 'empty', 'error', 'default'],
-    accessibility: ['Keyboard navigation', 'ARIA grid', 'Column headers', 'Row selection'],
-    responsive: {
-      mobile: 'Horizontal scroll, sticky first column',
-      tablet: 'Responsive columns',
-      desktop: 'Full table',
-    },
-  },
-  {
-    id: 'card',
-    name: 'Card',
-    category: 'data',
-    description: 'Content container with header, body, footer',
-    variants: ['default', 'elevated', 'outlined', 'interactive'],
-    states: ['default', 'hover', 'selected', 'disabled'],
-    accessibility: ['Focus management', 'ARIA landmarks'],
-    responsive: {
-      mobile: 'Full width',
-      tablet: 'Auto width',
-      desktop: 'Auto width',
-    },
-  },
-  {
-    id: 'kpivalue',
-    name: 'KPI Value',
-    category: 'data',
-    description: 'Key performance indicator display with trend',
-    variants: ['default', 'with-trend', 'with-target', 'compact'],
-    states: ['default', 'positive', 'negative', 'neutral'],
-    accessibility: ['Value announcements', 'Trend descriptions'],
-    responsive: {
-      mobile: 'Stacked layout',
-      tablet: 'Horizontal layout',
-      desktop: 'Horizontal layout',
-    },
-  },
-  {
-    id: 'statusbadge',
-    name: 'Status Badge',
-    category: 'data',
-    description: 'Semantic status indicator for workflow states',
-    variants: ['success', 'warning', 'error', 'info', 'neutral', 'critical'],
-    states: ['default', 'with-icon', 'with-tooltip'],
-    accessibility: ['Status announcements', 'Color contrast'],
-    responsive: {
-      mobile: 'Compact',
-      tablet: 'Standard',
-      desktop: 'Standard',
-    },
-  },
-
-  // Feedback Components
-  {
-    id: 'alert',
-    name: 'Alert',
-    category: 'feedback',
-    description: 'Important message with action',
-    variants: ['info', 'success', 'warning', 'error'],
-    states: ['default', 'dismissible', 'with-action'],
-    accessibility: ['Role alert', 'Dismiss button', 'Action focus'],
-    responsive: {
-      mobile: 'Full width',
-      tablet: 'Auto width',
-      desktop: 'Auto width',
-    },
-  },
-  {
-    id: 'toast',
-    name: 'Toast',
-    category: 'feedback',
-    description: 'Temporary notification message',
-    variants: ['info', 'success', 'warning', 'error'],
-    states: ['entering', 'visible', 'exiting'],
-    accessibility: ['Live region', 'Auto-dismiss', 'Manual dismiss'],
-    responsive: {
-      mobile: 'Bottom stacked',
-      tablet: 'Top right',
-      desktop: 'Top right',
-    },
-  },
-  {
-    id: 'modal',
-    name: 'Modal',
-    category: 'feedback',
-    description: 'Dialog overlay with focus trap',
-    variants: ['default', 'confirmation', 'form', 'fullscreen'],
-    states: ['opening', 'open', 'closing'],
-    accessibility: ['Focus trap', 'Escape to close', 'ARIA dialog', 'Backdrop click'],
-    responsive: {
-      mobile: 'Fullscreen',
-      tablet: 'Centered',
-      desktop: 'Centered',
-    },
-  },
-  {
-    id: 'tooltip',
-    name: 'Tooltip',
-    category: 'feedback',
-    description: 'Contextual help on hover/focus',
-    variants: ['top', 'bottom', 'left', 'right'],
-    states: ['hidden', 'visible'],
-    accessibility: ['ARIA describedby', 'Keyboard accessible', 'Delay timing'],
-    responsive: {
-      mobile: 'Tap to show',
-      tablet: 'Hover to show',
-      desktop: 'Hover to show',
-    },
-  },
-
-  // Navigation Components
-  {
-    id: 'tabs',
-    name: 'Tabs',
-    category: 'navigation',
-    description: 'Tabbed interface for content sections',
-    variants: ['default', 'pills', 'underline'],
-    states: ['default', 'active', 'disabled', 'loading'],
-    accessibility: ['ARIA tabs', 'Keyboard navigation', 'Panel association'],
-    responsive: {
-      mobile: 'Scrollable tabs',
-      tablet: 'Standard tabs',
-      desktop: 'Standard tabs',
-    },
-  },
-  {
-    id: 'breadcrumb',
-    name: 'Breadcrumb',
-    category: 'navigation',
-    description: 'Hierarchical navigation path',
-    variants: ['default', 'with-icons'],
-    states: ['default', 'truncated'],
-    accessibility: ['ARIA navigation', 'Current page indicator'],
-    responsive: {
-      mobile: 'Collapsed with dropdown',
-      tablet: 'Standard',
-      desktop: 'Standard',
-    },
-  },
-  {
-    id: 'pagination',
-    name: 'Pagination',
-    category: 'navigation',
-    description: 'Page navigation for data sets',
-    variants: ['default', 'compact', 'with-jump'],
-    states: ['default', 'disabled'],
-    accessibility: ['ARIA navigation', 'Page announcements', 'Keyboard navigation'],
-    responsive: {
-      mobile: 'Previous/Next only',
-      tablet: 'Compact',
-      desktop: 'Full pagination',
-    },
-  },
-
-  // Layout Components
-  {
-    id: 'grid',
-    name: 'Grid',
-    category: 'layout',
-    description: 'Responsive grid system',
-    variants: ['1-col', '2-col', '3-col', '4-col', 'auto'],
-    states: ['default'],
-    accessibility: ['Logical reading order'],
-    responsive: {
-      mobile: 'Single column',
-      tablet: '2-3 columns',
-      desktop: 'Up to 4 columns',
-    },
-  },
-  {
-    id: 'stack',
-    name: 'Stack',
-    category: 'layout',
-    description: 'Vertical/horizontal spacing container',
-    variants: ['vertical', 'horizontal', 'wrap'],
-    states: ['default'],
-    accessibility: ['Logical order'],
-    responsive: {
-      mobile: 'Stacked',
-      tablet: 'Configurable',
-      desktop: 'Configurable',
-    },
-  },
-
-  // Protocol Components
-  {
-    id: 'gatestatuspanel',
-    name: 'Gate Status Panel',
-    category: 'protocol',
-    description: 'Protocol control point status display',
-    variants: ['default', 'compact', 'detailed'],
-    states: ['pass', 'warn', 'fail', 'blocked'],
-    accessibility: ['Status announcements', 'Action guidance'],
-    responsive: {
-      mobile: 'Collapsible',
-      tablet: 'Side panel',
-      desktop: 'Side panel',
-    },
-  },
-  {
-    id: 'exceptionrequestdialog',
-    name: 'Exception Request Dialog',
-    category: 'protocol',
-    description: 'Dialog for requesting protocol exceptions',
-    variants: ['default'],
-    states: ['draft', 'submitting', 'submitted'],
-    accessibility: ['Form labels', 'Error messages', 'Focus management'],
-    responsive: {
-      mobile: 'Fullscreen',
-      tablet: 'Modal',
-      desktop: 'Modal',
-    },
-  },
-  {
-    id: 'reasoncodepicker',
-    name: 'Reason Code Picker',
-    category: 'protocol',
-    description: 'Selection component for reason codes',
-    variants: ['default', 'with-narrative'],
-    states: ['default', 'selected', 'error'],
-    accessibility: ['Search', 'Keyboard navigation', 'Selection announcements'],
-    responsive: {
-      mobile: 'Fullscreen picker',
-      tablet: 'Dropdown',
-      desktop: 'Dropdown',
-    },
-  },
-  {
-    id: 'compliancescorebadge',
-    name: 'Compliance Score Badge',
-    category: 'protocol',
-    description: 'Visual compliance score indicator',
-    variants: ['default', 'compact', 'detailed'],
-    states: ['excellent', 'good', 'fair', 'poor'],
-    accessibility: ['Score announcements', 'Trend descriptions'],
-    responsive: {
-      mobile: 'Compact',
-      tablet: 'Standard',
-      desktop: 'Standard',
-    },
-  },
-];
-
-// ===== PAGE TEMPLATES =====
-export interface PageTemplate {
-  id: string;
-  name: string;
-  description: string;
-  components: string[];
-  useCases: string[];
-  responsive: {
-    mobile: string;
-    tablet: string;
-    desktop: string;
-  };
+export interface ReasonCodePickerProps {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (code: string, narrative: string) => void;
+  category: string;
 }
 
-export const pageTemplates: PageTemplate[] = [
+// ============================================================================
+// PAGE TEMPLATES
+// ============================================================================
+
+export interface ListReportTemplateProps {
+  title: string;
+  subtitle?: string;
+  filters?: React.ReactNode;
+  actions?: React.ReactNode;
+  table: React.ReactNode;
+}
+
+export interface ObjectPageTemplateProps {
+  header: {
+    title: string;
+    subtitle?: string;
+    status?: React.ReactNode;
+    actions?: React.ReactNode;
+  };
+  tabs: {
+    key: string;
+    label: string;
+    content: React.ReactNode;
+  }[];
+  sidePanel?: React.ReactNode;
+}
+
+export interface WorklistTemplateProps {
+  title: string;
+  subtitle?: string;
+  list: React.ReactNode;
+  detail?: React.ReactNode;
+}
+
+export interface WizardTemplateProps {
+  title: string;
+  steps: {
+    key: string;
+    label: string;
+    content: React.ReactNode;
+  }[];
+  currentStep: number;
+  onNext: () => void;
+  onBack: () => void;
+  onSubmit: () => void;
+}
+
+export interface DashboardTemplateProps {
+  title: string;
+  widgets: React.ReactNode[];
+}
+
+// ============================================================================
+// PROTOCOL COMPONENTS
+// ============================================================================
+
+export interface ComplianceScoreBadgeProps {
+  score: number;
+  trend?: 'up' | 'down' | 'stable';
+}
+
+export interface PlannedVsActualBarProps {
+  label: string;
+  planned: number;
+  actual: number;
+  unit?: string;
+  variant?: 'time' | 'qty' | 'cost' | 'productivity' | 'consumption' | 'wastage' | 'progress';
+}
+
+export interface ValueAtRiskChipProps {
+  amount: number;
+  currency?: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+// ============================================================================
+// USER PREFERENCES
+// ============================================================================
+
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'system';
+  density: DensityMode;
+  numberFormat: 'indian' | 'international';
+  dateFormat: 'dd-MMM-yyyy' | 'yyyy-MM-dd' | 'MM/dd/yyyy';
+  language: 'en' | 'hi';
+  sidebarCollapsed: boolean;
+  homeDashboardId?: string;
+}
+
+export const defaultPreferences: UserPreferences = {
+  theme: 'light',
+  density: 'comfortable',
+  numberFormat: 'indian',
+  dateFormat: 'dd-MMM-yyyy',
+  language: 'en',
+  sidebarCollapsed: false,
+};
+
+// ============================================================================
+// BRAND CONFIGURATION
+// ============================================================================
+
+export interface BrandConfig {
+  companyName: string;
+  logoUrl?: string;
+  primaryColor: string;
+  faviconUrl?: string;
+}
+
+export const defaultBrand: BrandConfig = {
+  companyName: 'Construction ERP',
+  primaryColor: '#1B5E8C',
+};
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+export function formatCurrency(amount: number, format: 'indian' | 'international' = 'indian'): string {
+  if (format === 'indian') {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function formatDate(date: Date | string, format: string = 'dd-MMM-yyyy'): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  
+  switch (format) {
+    case 'dd-MMM-yyyy':
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    case 'yyyy-MM-dd':
+      return d.toISOString().split('T')[0];
+    case 'MM/dd/yyyy':
+      return d.toLocaleDateString('en-US');
+    default:
+      return d.toLocaleDateString();
+  }
+}
+
+export function formatNumber(value: number, format: 'indian' | 'international' = 'indian'): string {
+  if (format === 'indian') {
+    return new Intl.NumberFormat('en-IN').format(value);
+  }
+  return new Intl.NumberFormat('en-US').format(value);
+}
+
+export function getContrastRatio(color1: string, color2: string): number {
+  // Simplified contrast ratio calculation
+  // In production, use a proper color library
+  return 4.5; // WCAG AA minimum for normal text
+}
+
+export function validateBrandColor(color: string): { valid: boolean; message?: string } {
+  // Check if color provides sufficient contrast
+  const contrast = getContrastRatio(color, '#FFFFFF');
+  if (contrast < 4.5) {
+    return {
+      valid: false,
+      message: 'Color does not meet WCAG AA contrast requirements (minimum 4.5:1)',
+    };
+  }
+  return { valid: true };
+}
+
+// ============================================================================
+// MIGRATION TRACKER
+// ============================================================================
+
+export interface ScreenMigration {
+  screenId: string;
+  screenName: string;
+  module: string;
+  status: 'pending' | 'restyle' | 'refactor' | 'rebuild' | 'complete';
+  owner: string;
+  targetDate?: string;
+  notes?: string;
+}
+
+export const migrationTracker: ScreenMigration[] = [
   {
-    id: 'list-report',
-    name: 'List Report',
-    description: 'Data listing with filters, sorting, and bulk actions',
-    components: ['DataTable', 'FilterBar', 'Pagination', 'Button', 'StatusBadge'],
-    useCases: ['Project list', 'Purchase orders', 'Material inventory', 'Employee directory'],
-    responsive: {
-      mobile: 'Single column, stacked filters',
-      tablet: 'Side filters, responsive table',
-      desktop: 'Top filters, full table',
-    },
+    screenId: 'screen-001',
+    screenName: 'Project List',
+    module: 'project-management',
+    status: 'complete',
+    owner: 'UI Team',
+    targetDate: '2024-01-15',
   },
   {
-    id: 'object-page',
-    name: 'Object Page',
-    description: 'Detailed view of a single entity with tabs and actions',
-    components: ['Card', 'Tabs', 'StatusBadge', 'Button', 'KPIValue', 'GateStatusPanel'],
-    useCases: ['Project details', 'Purchase order view', 'Employee profile', 'Site information'],
-    responsive: {
-      mobile: 'Stacked sections, collapsible tabs',
-      tablet: 'Side panel, tabbed content',
-      desktop: 'Header + tabs + side panel',
-    },
+    screenId: 'screen-002',
+    screenName: 'Purchase Order Form',
+    module: 'procurement',
+    status: 'refactor',
+    owner: 'UI Team',
+    targetDate: '2024-01-20',
   },
   {
-    id: 'worklist',
-    name: 'Worklist / Inbox',
-    description: 'Task queue with list and detail split view',
-    components: ['DataTable', 'Card', 'StatusBadge', 'Button', 'Tabs'],
-    useCases: ['My approvals', 'Pending tasks', 'Exception requests', 'Violation queue'],
-    responsive: {
-      mobile: 'List view, tap for detail',
-      tablet: 'Split view 40/60',
-      desktop: 'Split view 30/70',
-    },
-  },
-  {
-    id: 'wizard',
-    name: 'Wizard',
-    description: 'Multi-step form with progress indicator',
-    components: ['Stepper', 'Form', 'Button', 'Alert'],
-    useCases: ['Project creation', 'Purchase order creation', 'Employee onboarding', 'Vendor registration'],
-    responsive: {
-      mobile: 'Vertical stepper, one step at a time',
-      tablet: 'Horizontal stepper, compact form',
-      desktop: 'Horizontal stepper, full form',
-    },
-  },
-  {
-    id: 'dashboard',
-    name: 'Dashboard',
-    description: 'Widget grid with KPIs and charts',
-    components: ['Card', 'KPIValue', 'Chart', 'StatusBadge', 'Grid'],
-    useCases: ['Home dashboard', 'Project overview', 'Financial summary', 'Operations monitor'],
-    responsive: {
-      mobile: 'Single column widgets',
-      tablet: '2-column grid',
-      desktop: '3-4 column grid',
-    },
-  },
-  {
-    id: 'analytical-page',
-    name: 'Analytical Page',
-    description: 'Data analysis with filters, charts, and drill-down',
-    components: ['FilterBar', 'Chart', 'DataTable', 'Card', 'Button'],
-    useCases: ['Cost analysis', 'Progress tracking', 'Resource utilization', 'Variance reports'],
-    responsive: {
-      mobile: 'Stacked charts, simplified filters',
-      tablet: 'Side-by-side charts',
-      desktop: 'Multi-panel layout',
-    },
-  },
-  {
-    id: 'settings-page',
-    name: 'Settings Page',
-    description: 'Configuration form with sections',
-    components: ['Form', 'Tabs', 'Button', 'Alert'],
-    useCases: ['User preferences', 'System configuration', 'Integration settings', 'Notification preferences'],
-    responsive: {
-      mobile: 'Stacked sections',
-      tablet: 'Side navigation, content area',
-      desktop: 'Side navigation, content area',
-    },
-  },
-  {
-    id: 'mobile-capture',
-    name: 'Mobile Capture Page',
-    description: 'Form optimized for field data collection',
-    components: ['Form', 'Camera', 'GPS', 'QRScanner', 'Button'],
-    useCases: ['Attendance marking', 'Inspection capture', 'Material receipt', 'Safety incident report'],
-    responsive: {
-      mobile: 'Full screen, large touch targets',
-      tablet: 'Optimized for touch',
-      desktop: 'Not applicable',
-    },
+    screenId: 'screen-003',
+    screenName: 'Stock Register',
+    module: 'inventory',
+    status: 'pending',
+    owner: 'UI Team',
+    targetDate: '2024-01-25',
   },
 ];
 
-// ===== PROTOCOL CONTROL POINT =====
+// ============================================================================
+// PROTOCOL CONTROL POINT
+// ============================================================================
+
 export const protocolControlPoint = {
   id: 'CP-DS-01',
   stage: 'VERIFY',
@@ -622,8 +509,74 @@ export const protocolControlPoint = {
   status: 'OBSERVE',
 };
 
-// ===== HELPER FUNCTIONS =====
-export function getComponentsByCategory(category: string): Component[] {
+// ============================================================================
+// COMPONENT CATALOG
+// ============================================================================
+
+export interface ComponentDefinition {
+  id: string;
+  name: string;
+  category: 'buttons' | 'inputs' | 'data-display' | 'navigation' | 'feedback' | 'layout' | 'protocol';
+  description: string;
+  variants?: string[];
+  states?: string[];
+  accessibility?: string[];
+  responsive?: {
+    mobile: boolean;
+    tablet: boolean;
+    desktop: boolean;
+  };
+}
+
+export const components: ComponentDefinition[] = [
+  // Buttons
+  { id: 'btn-001', name: 'Button', category: 'buttons', description: 'Primary action button with multiple variants', variants: ['primary', 'secondary', 'danger', 'ghost'], states: ['default', 'hover', 'focus', 'disabled', 'loading'], accessibility: ['keyboard', 'aria-label', 'focus-ring'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'btn-002', name: 'Icon Button', category: 'buttons', description: 'Button with icon only', variants: ['default', 'primary', 'danger'], states: ['default', 'hover', 'focus', 'disabled'], accessibility: ['aria-label', 'focus-ring'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'btn-003', name: 'Button Group', category: 'buttons', description: 'Group of related buttons', variants: ['horizontal', 'vertical'], states: ['default', 'disabled'], accessibility: ['keyboard', 'aria-group'], responsive: { mobile: true, tablet: true, desktop: true } },
+  
+  // Inputs
+  { id: 'inp-001', name: 'Text Input', category: 'inputs', description: 'Single-line text input', variants: ['text', 'email', 'password', 'number'], states: ['default', 'focus', 'error', 'disabled', 'readonly'], accessibility: ['label', 'aria-describedby', 'focus-ring'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'inp-002', name: 'Textarea', category: 'inputs', description: 'Multi-line text input', variants: ['default', 'resizable'], states: ['default', 'focus', 'error', 'disabled'], accessibility: ['label', 'aria-describedby'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'inp-003', name: 'Select', category: 'inputs', description: 'Dropdown selection', variants: ['single', 'multi', 'searchable'], states: ['default', 'open', 'disabled'], accessibility: ['keyboard', 'aria-expanded', 'label'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'inp-004', name: 'Checkbox', category: 'inputs', description: 'Checkbox input', variants: ['default', 'indeterminate'], states: ['unchecked', 'checked', 'disabled'], accessibility: ['label', 'aria-checked'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'inp-005', name: 'Radio', category: 'inputs', description: 'Radio button input', variants: ['default'], states: ['unselected', 'selected', 'disabled'], accessibility: ['label', 'aria-checked', 'keyboard'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'inp-006', name: 'Date Picker', category: 'inputs', description: 'Date selection input', variants: ['single', 'range'], states: ['default', 'open', 'disabled'], accessibility: ['label', 'keyboard', 'aria-expanded'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'inp-007', name: 'Lookup', category: 'inputs', description: 'Search and select from list', variants: ['single', 'multi'], states: ['default', 'searching', 'disabled'], accessibility: ['label', 'aria-autocomplete', 'keyboard'], responsive: { mobile: true, tablet: true, desktop: true } },
+  
+  // Data Display
+  { id: 'dd-001', name: 'Status Badge', category: 'data-display', description: 'Status indicator badge', variants: ['success', 'warning', 'error', 'info', 'neutral', 'critical'], states: ['default'], accessibility: ['aria-label'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'dd-002', name: 'KPI Card', category: 'data-display', description: 'Key performance indicator card', variants: ['default', 'compact', 'expanded'], states: ['default', 'loading'], accessibility: ['aria-label', 'aria-valuenow'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'dd-003', name: 'Data Table', category: 'data-display', description: 'Advanced data table with sorting, filtering, pagination', variants: ['default', 'compact', 'striped'], states: ['default', 'loading', 'empty', 'error'], accessibility: ['keyboard', 'aria-sort', 'aria-selected'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'dd-004', name: 'Tree Grid', category: 'data-display', description: 'Hierarchical data table', variants: ['default', 'compact'], states: ['default', 'expanded', 'collapsed'], accessibility: ['keyboard', 'aria-expanded', 'aria-level'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'dd-005', name: 'Chart', category: 'data-display', description: 'Data visualization chart', variants: ['line', 'bar', 'pie', 'area'], states: ['default', 'loading'], accessibility: ['aria-label', 'aria-describedby'], responsive: { mobile: true, tablet: true, desktop: true } },
+  
+  // Navigation
+  { id: 'nav-001', name: 'Sidebar', category: 'navigation', description: 'Main navigation sidebar', variants: ['expanded', 'collapsed'], states: ['default', 'active'], accessibility: ['keyboard', 'aria-current', 'aria-label'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'nav-002', name: 'Breadcrumb', category: 'navigation', description: 'Breadcrumb navigation', variants: ['default'], states: ['default', 'active'], accessibility: ['aria-label', 'aria-current'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'nav-003', name: 'Tabs', category: 'navigation', description: 'Tab navigation', variants: ['horizontal', 'vertical'], states: ['default', 'active', 'disabled'], accessibility: ['keyboard', 'aria-selected', 'aria-controls'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'nav-004', name: 'Pagination', category: 'navigation', description: 'Page navigation', variants: ['default', 'compact'], states: ['default', 'disabled'], accessibility: ['aria-label', 'aria-current', 'keyboard'], responsive: { mobile: true, tablet: true, desktop: true } },
+  
+  // Feedback
+  { id: 'fb-001', name: 'Alert', category: 'feedback', description: 'Alert message', variants: ['info', 'success', 'warning', 'error'], states: ['default', 'dismissible'], accessibility: ['role=alert', 'aria-live'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'fb-002', name: 'Toast', category: 'feedback', description: 'Toast notification', variants: ['info', 'success', 'warning', 'error'], states: ['default', 'dismissing'], accessibility: ['role=status', 'aria-live'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'fb-003', name: 'Modal', category: 'feedback', description: 'Modal dialog', variants: ['default', 'full-screen'], states: ['default', 'open', 'closing'], accessibility: ['aria-modal', 'focus-trap', 'keyboard'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'fb-004', name: 'Tooltip', category: 'feedback', description: 'Tooltip popup', variants: ['top', 'bottom', 'left', 'right'], states: ['default', 'visible'], accessibility: ['aria-describedby'], responsive: { mobile: true, tablet: true, desktop: true } },
+  
+  // Layout
+  { id: 'ly-001', name: 'Card', category: 'layout', description: 'Content card container', variants: ['default', 'elevated', 'outlined'], states: ['default', 'hover'], accessibility: ['aria-label'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'ly-002', name: 'Grid', category: 'layout', description: 'Responsive grid layout', variants: ['1-col', '2-col', '3-col', '4-col'], states: ['default'], accessibility: [], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'ly-003', name: 'Split View', category: 'layout', description: 'Split pane layout', variants: ['horizontal', 'vertical'], states: ['default', 'resizing'], accessibility: ['aria-label', 'keyboard'], responsive: { mobile: true, tablet: true, desktop: true } },
+  
+  // Protocol Components
+  { id: 'pc-001', name: 'Gate Status Panel', category: 'protocol', description: 'Protocol gate status display', variants: ['default', 'compact'], states: ['pass', 'warn', 'fail', 'pending'], accessibility: ['aria-label', 'aria-live'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'pc-002', name: 'Exception Request Dialog', category: 'protocol', description: 'Exception request dialog', variants: ['default'], states: ['open', 'submitting'], accessibility: ['aria-modal', 'focus-trap'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'pc-003', name: 'Reason Code Picker', category: 'protocol', description: 'Reason code selection', variants: ['default'], states: ['open', 'searching'], accessibility: ['aria-label', 'keyboard'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'pc-004', name: 'Compliance Score Badge', category: 'protocol', description: 'Compliance score indicator', variants: ['default', 'compact'], states: ['good', 'warning', 'critical'], accessibility: ['aria-label', 'aria-valuenow'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'pc-005', name: 'Planned vs Actual Bar', category: 'protocol', description: 'Planned vs actual comparison', variants: ['time', 'qty', 'cost', 'progress'], states: ['default', 'overdue'], accessibility: ['aria-label', 'aria-valuenow', 'aria-valuemax'], responsive: { mobile: true, tablet: true, desktop: true } },
+  { id: 'pc-006', name: 'Value at Risk Chip', category: 'protocol', description: 'Value at risk indicator', variants: ['low', 'medium', 'high', 'critical'], states: ['default'], accessibility: ['aria-label'], responsive: { mobile: true, tablet: true, desktop: true } },
+];
+
+export function getComponentsByCategory(category: string): ComponentDefinition[] {
   return components.filter(c => c.category === category);
 }
 
@@ -632,13 +585,101 @@ export function getComponentStats(): { total: number; byCategory: Record<string,
     acc[c.category] = (acc[c.category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-
+  
   return { total: components.length, byCategory };
 }
 
-export function getPageTemplateStats(): { total: number; byUseCase: number } {
+// ============================================================================
+// PAGE TEMPLATES
+// ============================================================================
+
+export interface PageTemplateDefinition {
+  id: string;
+  name: string;
+  description: string;
+  components: string[];
+  useCases: string[];
+  responsive: boolean;
+}
+
+export const pageTemplates: PageTemplateDefinition[] = [
+  {
+    id: 'tmpl-001',
+    name: 'List Report',
+    description: 'Data list with filters, sorting, and bulk actions',
+    components: ['Data Table', 'Filter Bar', 'Pagination', 'Button Group'],
+    useCases: ['Project list', 'Purchase orders', 'Stock register', 'Employee directory'],
+    responsive: true,
+  },
+  {
+    id: 'tmpl-002',
+    name: 'Object Page',
+    description: 'Detailed view of a single object with tabs and actions',
+    components: ['Header', 'Tabs', 'Card', 'Data Table', 'Status Badge'],
+    useCases: ['Project details', 'PO details', 'Employee profile', 'Site information'],
+    responsive: true,
+  },
+  {
+    id: 'tmpl-003',
+    name: 'Worklist',
+    description: 'Task list with detail panel',
+    components: ['Split View', 'List', 'Card', 'Status Badge', 'Button'],
+    useCases: ['My approvals', 'Pending tasks', 'Exception requests', 'Violations'],
+    responsive: true,
+  },
+  {
+    id: 'tmpl-004',
+    name: 'Wizard',
+    description: 'Multi-step form with progress indicator',
+    components: ['Stepper', 'Form', 'Button Group', 'Card'],
+    useCases: ['Project creation', 'PO creation', 'User registration', 'Configuration setup'],
+    responsive: true,
+  },
+  {
+    id: 'tmpl-005',
+    name: 'Dashboard',
+    description: 'Overview with KPI cards and charts',
+    components: ['KPI Card', 'Chart', 'Card', 'Grid'],
+    useCases: ['Home dashboard', 'Project overview', 'Financial summary', 'Operations dashboard'],
+    responsive: true,
+  },
+  {
+    id: 'tmpl-006',
+    name: 'Analytical Page',
+    description: 'Data analysis with filters and visualizations',
+    components: ['Filter Bar', 'Chart', 'Data Table', 'KPI Card'],
+    useCases: ['Budget analysis', 'Resource utilization', 'Performance metrics', 'Trend analysis'],
+    responsive: true,
+  },
+  {
+    id: 'tmpl-007',
+    name: 'Settings Page',
+    description: 'Configuration form with sections',
+    components: ['Form', 'Tabs', 'Card', 'Button Group'],
+    useCases: ['User preferences', 'System settings', 'Integration config', 'Notification settings'],
+    responsive: true,
+  },
+  {
+    id: 'tmpl-008',
+    name: 'Mobile Capture',
+    description: 'Mobile-optimized form with camera/GPS/QR',
+    components: ['Form', 'Camera Input', 'GPS Input', 'QR Scanner', 'Button'],
+    useCases: ['Attendance marking', 'Material receipt', 'Inspection report', 'Safety incident'],
+    responsive: true,
+  },
+];
+
+export function getPageTemplateStats(): { total: number; responsive: number; byUseCase: Record<string, number> } {
+  const byUseCase: Record<string, number> = {};
+  pageTemplates.forEach(t => {
+    t.useCases.forEach(useCase => {
+      byUseCase[useCase] = (byUseCase[useCase] || 0) + 1;
+    });
+  });
+  
   return {
     total: pageTemplates.length,
-    byUseCase: pageTemplates.reduce((sum, t) => sum + t.useCases.length, 0),
+    responsive: pageTemplates.filter(t => t.responsive).length,
+    byUseCase,
   };
 }

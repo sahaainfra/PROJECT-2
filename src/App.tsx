@@ -45,6 +45,7 @@ import {
 } from './data/iam';
 import { AuditSecModule } from './components/AuditSecModule';
 import { SecBaseModule } from './components/SecBaseModule';
+import { IdSodModule } from './components/IdSodModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -59,6 +60,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.iam': true,
   'ff.audit_sec': true,
   'ff.secbase': true,
+  'ff.idsod': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1351,6 +1353,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Audit & Security
+          </button>
+          <button
+            onClick={() => navigate('/admin/idsod')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Identity & SoD
           </button>
           <button
             onClick={() => navigate('/preview')}
@@ -4552,6 +4560,7 @@ function AppLayout() {
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />
+            <Route path="/admin/idsod" element={<IdSodModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

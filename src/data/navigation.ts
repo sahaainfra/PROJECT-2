@@ -31,6 +31,7 @@ export const navigationRegistry: NavGroup[] = [
       { id: 'my-approvals', group: 'home', label: 'My Approvals', iconKey: 'inbox', route: '/workflow', permissionKey: 'wf.task.act', featureFlag: 'ff.wf', sortOrder: 3, keywords: ['workflow', 'approval', 'inbox', 'task'], isActive: true, badge: '3' } as NavEntry,
       { id: 'notifications', group: 'home', label: 'Notifications', iconKey: 'bell', route: '/home/rt', permissionKey: 'ntf.view', featureFlag: 'ff.rt', sortOrder: 4, keywords: ['notification', 'alert', 'message', 'real-time'], isActive: true, badge: '5' } as NavEntry,
       { id: 'global-search', group: 'home', label: 'Global Search', iconKey: 'search', route: '/home/search', permissionKey: 'search.global.use', featureFlag: 'ff.search', sortOrder: 5, keywords: ['search', 'find', 'lookup', 'command', 'palette', 'global'], isActive: true } as NavEntry,
+      { id: 'my-tasks', group: 'home', label: 'My Tasks', iconKey: 'check-square', route: '/home/task', permissionKey: 'task.task.view', featureFlag: 'ff.task', sortOrder: 6, keywords: ['task', 'todo', 'action', 'assignment', 'checklist', 'kanban', 'calendar', 'meeting'], isActive: true, badge: '4' } as NavEntry,
     ],
   },
   {

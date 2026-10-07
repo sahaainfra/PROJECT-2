@@ -25,6 +25,10 @@ import {
   quarantinedTests, gateThresholds, regressionSuites,
   type Release, type GateResult, type FeatureFlag, type EvidenceBundle
 } from './data/cicd';
+import {
+  serviceHooks, outboxMetrics, jobMetrics, numberSeriesStatus,
+  errorCodes, protocolControlPoints, sampleModuleActions
+} from './data/core';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -34,6 +38,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.audit': true,
   'ff.preview': true,
   'ff.cicd': true,
+  'ff.core': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1298,6 +1303,12 @@ function TechConsoleBaseline() {
             CI/CD & Releases
           </button>
           <button
+            onClick={() => navigate('/_tech/core')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Core Services
+          </button>
+          <button
             onClick={() => navigate('/preview')}
             className="px-3 py-1.5 text-sm rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 font-medium"
           >
@@ -2363,6 +2374,487 @@ function CICDDashboard() {
   );
 }
 
+// ===== CORE SERVICES DASHBOARD (Part 04 — DS-32 Technical Console) =====
+function CoreServicesDashboard() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'hooks' | 'outbox' | 'jobs' | 'numbering' | 'errors' | 'protocol' | 'sample'>('overview');
+  const navigate = useNavigate();
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: 'layout-dashboard' },
+    { id: 'hooks', label: 'Service Hooks', icon: 'zap' },
+    { id: 'outbox', label: 'Event Outbox', icon: 'activity' },
+    { id: 'jobs', label: 'Job Framework', icon: 'clock' },
+    { id: 'numbering', label: 'Number Series', icon: 'hash' },
+    { id: 'errors', label: 'Error Codes', icon: 'alert-circle' },
+    { id: 'protocol', label: 'Protocol Controls', icon: 'shield' },
+    { id: 'sample', label: 'Sample Module', icon: 'file-text' },
+  ];
+
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-56 border-r border-[var(--border)] bg-[var(--sidebar-bg)] p-3 overflow-y-auto shrink-0 hidden lg:block">
+        <div className="mb-4 px-2">
+          <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Core Services</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-1">Part 04 · ff.core</p>
+        </div>
+        <nav className="space-y-1">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+                activeTab === t.id
+                  ? 'bg-[var(--brand-primary)] text-white font-medium'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+              }`}
+            >
+              <Icon name={t.icon} size={16} />
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Mobile tab selector */}
+        <div className="lg:hidden mb-4">
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value as any)}
+            className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-primary)]"
+          >
+            {tabs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+
+        {/* OVERVIEW TAB */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Core Enterprise Services</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Shared service layer — authentication, authorization, validation, audit, events, notifications, numbering, utilities</p>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Service Hooks</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{serviceHooks.length}</p>
+                <p className="text-xs text-emerald-600 mt-1">{serviceHooks.filter(h => h.status === 'active').length} active</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Outbox (24h)</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{outboxMetrics.reduce((sum, m) => sum + m.published, 0)}</p>
+                <p className="text-xs text-emerald-600 mt-1">published</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Background Jobs</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{jobMetrics.length}</p>
+                <p className="text-xs text-emerald-600 mt-1">{jobMetrics.filter(j => j.status === 'idle').length} idle</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Number Series</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{numberSeriesStatus.length}</p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">active</p>
+              </div>
+            </div>
+
+            {/* Health Status */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                <Activity size={16} className="text-emerald-500" />
+                System Health
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { name: 'Database', status: 'up', latency: '5ms' },
+                  { name: 'Cache (Redis)', status: 'up', latency: '2ms' },
+                  { name: 'Queue (BullMQ)', status: 'up', latency: '10ms' },
+                  { name: 'Storage (S3)', status: 'up', latency: '50ms' },
+                ].map((check, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--surface-hover)]">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{check.name}</p>
+                      <p className="text-xs text-[var(--text-tertiary)]">{check.status} · {check.latency}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Service Hooks Overview */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Service Hooks Status</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {serviceHooks.slice(0, 6).map(hook => (
+                  <div key={hook.id} className="px-4 py-3 flex items-center gap-4 hover:bg-[var(--surface-hover)]">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      hook.status === 'active' ? 'bg-emerald-100 text-emerald-600' :
+                      hook.status === 'stub' ? 'bg-amber-100 text-amber-600' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      <Icon name={hook.category === 'auth' ? 'shield' : hook.category === 'validation' ? 'file-text' : hook.category === 'audit' ? 'clipboard' : hook.category === 'event' ? 'activity' : 'zap'} size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-primary)] font-mono">{hook.name}</p>
+                      <p className="text-xs text-[var(--text-tertiary)] truncate">{hook.description}</p>
+                    </div>
+                    <div className="hidden sm:block text-right">
+                      <p className="text-xs font-tabular text-[var(--text-secondary)]">{hook.usageCount.toLocaleString()} calls</p>
+                      <StatusChip status={hook.status} variant={hook.status === 'active' ? 'success' : hook.status === 'stub' ? 'warning' : 'neutral'} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Protocol Control Points */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                <Shield size={16} className="text-[var(--brand-primary)]" />
+                Protocol Control Points
+              </h3>
+              <div className="space-y-3">
+                {protocolControlPoints.map(cp => (
+                  <div key={cp.id} className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border)]">
+                    <span className="text-xs font-mono font-medium text-[var(--brand-primary)] shrink-0">{cp.id}</span>
+                    <StatusChip status={cp.stage} variant="info" />
+                    <span className="text-sm text-[var(--text-primary)] flex-1">{cp.control}</span>
+                    <StatusChip status={cp.status} variant="warning" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SERVICE HOOKS TAB */}
+        {activeTab === 'hooks' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Service Hooks</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Shared hooks available to all modules · authorize, validate, audit, emit, notify, attach, nextNumber</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Hook</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Description</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Category</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Owner</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Usage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {serviceHooks.map(hook => (
+                    <tr key={hook.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{hook.name}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)] max-w-xs">{hook.description}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)] capitalize">{hook.category}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={hook.status} variant={hook.status === 'active' ? 'success' : hook.status === 'stub' ? 'warning' : 'neutral'} />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{hook.partOwner}</td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-secondary)]">{hook.usageCount.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* OUTBOX TAB */}
+        {activeTab === 'outbox' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Event Outbox</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Transactional outbox pattern · At-least-once delivery · Dead-letter queue after N retries</p>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Pending</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{outboxMetrics[0]?.pending || 0}</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Published (24h)</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-1">{outboxMetrics.reduce((sum, m) => sum + m.published, 0)}</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Failed (24h)</p>
+                <p className="text-2xl font-bold text-red-600 mt-1">{outboxMetrics.reduce((sum, m) => sum + m.failed, 0)}</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Avg Latency</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{Math.round(outboxMetrics.reduce((sum, m) => sum + m.avgLatencyMs, 0) / outboxMetrics.length)}ms</p>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Outbox Activity (Last 5 Hours)</h3>
+              <div className="space-y-2">
+                {outboxMetrics.map((m, i) => (
+                  <div key={i} className="flex items-center gap-4 p-2 rounded-lg bg-[var(--surface-hover)]">
+                    <span className="text-xs text-[var(--text-tertiary)] w-20">{new Date(m.timestamp).toLocaleTimeString()}</span>
+                    <div className="flex-1 flex items-center gap-2">
+                      <div className="h-2 bg-emerald-500 rounded" style={{ width: `${(m.published / 20) * 100}%` }} title={`Published: ${m.published}`} />
+                      {m.failed > 0 && <div className="h-2 bg-red-500 rounded w-4" title={`Failed: ${m.failed}`} />}
+                    </div>
+                    <span className="text-xs font-tabular text-[var(--text-secondary)]">{m.published} pub / {m.failed} fail</span>
+                    <span className="text-xs text-[var(--text-tertiary)]">{m.avgLatencyMs}ms</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* JOBS TAB */}
+        {activeTab === 'jobs' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Job Framework</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Scheduled and on-demand jobs · Idempotency keys · Visibility in Part 146</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Job</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Type</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Schedule</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Success Rate</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Avg Duration</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Total Runs</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {jobMetrics.map(job => (
+                    <tr key={job.jobId} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-[var(--text-primary)]">{job.jobName}</p>
+                        <p className="text-xs text-[var(--text-tertiary)]">Last: {job.lastRun ? new Date(job.lastRun).toLocaleString() : 'Never'}</p>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{job.type}</span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{job.schedule || 'On-demand'}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={job.status} variant={job.status === 'idle' ? 'success' : job.status === 'running' ? 'info' : 'error'} />
+                      </td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-primary)]">{job.successRate}%</td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-secondary)]">{job.avgDurationMs}ms</td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-secondary)]">{job.totalRuns}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* NUMBERING TAB */}
+        {activeTab === 'numbering' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Number Series</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Concurrency-safe document numbering (SA-12) · Financial year aware · Gapless option</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Doc Type</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">FY</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Prefix</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Current Value</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Last Generated</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {numberSeriesStatus.map(ns => (
+                    <tr key={ns.key} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{ns.docType}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{ns.fy}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{ns.prefix}</td>
+                      <td className="px-4 py-3 text-right font-tabular font-bold text-[var(--text-primary)]">{ns.currentValue.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{ns.lastGenerated ? new Date(ns.lastGenerated).toLocaleString() : '—'}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{ns.generatedBy || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ERRORS TAB */}
+        {activeTab === 'errors' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Error Code Catalogue</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Standardized error envelope (SA-17) · Error-code catalogue for all modules</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Code</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Message</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Severity</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Count (7d)</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Last Occurrence</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {errorCodes.map(err => (
+                    <tr key={err.code} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{err.code}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{err.message}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={err.severity} variant={err.severity === 'critical' ? 'error' : err.severity === 'error' ? 'error' : err.severity === 'warning' ? 'warning' : 'info'} />
+                      </td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-primary)]">{err.count}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{err.lastOccurrence ? new Date(err.lastOccurrence).toLocaleString() : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* PROTOCOL TAB */}
+        {activeTab === 'protocol' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Protocol Controls</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">CP-CORE-01, CP-CORE-02 · OBSERVE mode · Will enforce when Part 14 is live</p>
+            </div>
+
+            <div className="space-y-3">
+              {protocolControlPoints.map(cp => (
+                <div key={cp.id} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-sm font-mono font-bold text-[var(--brand-primary)]">{cp.id}</span>
+                    <StatusChip status={cp.stage} variant="info" />
+                    <StatusChip status={cp.status} variant="warning" />
+                  </div>
+                  <p className="text-sm text-[var(--text-primary)] mb-2">{cp.control}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Enforcement: {cp.enforcement}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SAMPLE MODULE TAB */}
+        {activeTab === 'sample' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Sample Module — Reference Implementation</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Demonstrates all hooks in action · Behind ff.core · Not visible to users</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)] bg-[var(--surface-hover)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Controllable Actions</h3>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Action</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Stage</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Controllable</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Hooks Invoked</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {sampleModuleActions.map((action, i) => (
+                    <tr key={i} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{action.action}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={action.stage} variant="info" />
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {action.controllable ? (
+                          <CheckCircle2 size={16} className="text-emerald-500 mx-auto" />
+                        ) : (
+                          <XCircle size={16} className="text-[var(--text-disabled)] mx-auto" />
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {action.hooks.map((hook, j) => (
+                            <span key={j} className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)] font-mono">{hook}</span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Code Example */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Reference Implementation</h3>
+              <pre className="text-xs font-mono text-[var(--text-secondary)] bg-[var(--surface-hover)] p-4 rounded-lg overflow-x-auto">
+{`// Sample service using all hooks
+async function createSample(ctx: RequestContext, input: SampleInput) {
+  return withTransaction(ctx, async () => {
+    // 1. Authorize
+    await authorize(ctx, 'sample.create', { type: 'Sample' });
+    
+    // 2. Validate
+    const result = validate(sampleSchema, input);
+    if (!result.success) throw new AppError('VALIDATION_ERROR', 'Invalid input', 400, result.errors);
+    
+    // 3. Generate number
+    const number = await nextNumber(ctx, 'SAMPLE');
+    
+    // 4. Business logic (DB write)
+    const entity = await db.sample.create({ ...result.data, number });
+    
+    // 5. Audit
+    await audit(ctx, 'Sample', entity.id, 'create', undefined, entity);
+    
+    // 6. Emit event (outbox)
+    await emit(ctx, 'sample.created', 'Sample', entity.id, { number, ...entity });
+    
+    // 7. Notify (optional)
+    await notify(ctx, { roles: ['PM'] }, 'sample-created', { number }, 'info');
+    
+    return entity;
+  });
+}`}
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ===== AUDIT DASHBOARD (Part 01 — DS-32 Technical Console) =====
 function AuditDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -3045,6 +3537,7 @@ function AppLayout() {
             <Route path="/_tech/program/baseline" element={<TechConsoleBaseline />} />
             <Route path="/_tech/audit" element={<AuditDashboard />} />
             <Route path="/_tech/cicd" element={<CICDDashboard />} />
+            <Route path="/_tech/core" element={<CoreServicesDashboard />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

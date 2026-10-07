@@ -49,6 +49,7 @@ import { IdSodModule } from './components/IdSodModule';
 import { ObsModule } from './components/ObsModule';
 import { EvBusModule } from './components/EvBusModule';
 import { WfModule } from './components/WfModule';
+import { RulesModule } from './components/RulesModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -67,6 +68,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.obs': true,
   'ff.evbus': true,
   'ff.wf': true,
+  'ff.rules': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1377,6 +1379,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Identity & SoD
+          </button>
+          <button
+            onClick={() => navigate('/admin/rules')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Workflow Rules
           </button>
           <button
             onClick={() => navigate('/preview')}
@@ -4581,6 +4589,7 @@ function AppLayout() {
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />
             <Route path="/admin/idsod" element={<IdSodModule />} />
+            <Route path="/admin/rules" element={<RulesModule />} />
             <Route path="/workflow" element={<WfModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />

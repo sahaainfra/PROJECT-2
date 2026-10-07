@@ -71,7 +71,7 @@ export interface DecisionOutput {
   id: string;
   name: string;
   label: string;
-  type: 'string' | 'number' | 'boolean' | 'enum' | 'role[]';
+  type: 'string' | 'number' | 'boolean' | 'enum' | 'role[]' | 'string[]';
   description: string;
 }
 

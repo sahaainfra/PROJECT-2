@@ -37,6 +37,12 @@ import {
   getNextSiteStatuses, protocolControlPoints as orgProtocolControlPoints,
   type Project, type Site, type ProjectAllocation
 } from './data/org';
+import {
+  permissions, roles, rolePermissions, userRoleAssignments, fieldPolicies,
+  recordRules, sodRules, legacyPermissionMap, protocolControlPoints as iamProtocolControlPoints,
+  getPermissionsByModule, getRolePermissions, getUserAssignments, checkSodConflict,
+  type Permission, type Role, type UserRoleAssignment, type SodRule
+} from './data/iam';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -48,6 +54,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.cicd': true,
   'ff.core': true,
   'ff.org': true,
+  'ff.iam': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1322,6 +1329,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Organization
+          </button>
+          <button
+            onClick={() => navigate('/admin/iam')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Users & Roles
           </button>
           <button
             onClick={() => navigate('/preview')}
@@ -3343,6 +3356,499 @@ function OrganizationModule() {
   );
 }
 
+// ===== IAM MODULE (Part 06 — User, Role & Permission Architecture) =====
+function IAMModule() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'permissions' | 'roles' | 'assignments' | 'sod' | 'policies' | 'effective'>('overview');
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [showRoleDetail, setShowRoleDetail] = useState(false);
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: 'layout-dashboard' },
+    { id: 'permissions', label: 'Permissions', icon: 'shield' },
+    { id: 'roles', label: 'Roles', icon: 'users' },
+    { id: 'assignments', label: 'Assignments', icon: 'user-check' },
+    { id: 'sod', label: 'SoD Rules', icon: 'alert-triangle' },
+    { id: 'policies', label: 'Field Policies', icon: 'eye-off' },
+    { id: 'effective', label: 'Effective Access', icon: 'search' },
+  ];
+
+  const permissionsByModule = getPermissionsByModule();
+
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-56 border-r border-[var(--border)] bg-[var(--sidebar-bg)] p-3 overflow-y-auto shrink-0 hidden lg:block">
+        <div className="mb-4 px-2">
+          <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Administration</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-1">IAM · ff.iam</p>
+        </div>
+        <nav className="space-y-1">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+                activeTab === t.id
+                  ? 'bg-[var(--brand-primary)] text-white font-medium'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+              }`}
+            >
+              <Icon name={t.icon} size={16} />
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Mobile tab selector */}
+        <div className="lg:hidden mb-4">
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value as any)}
+            className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-primary)]"
+          >
+            {tabs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+
+        {/* OVERVIEW TAB */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Identity & Access Management</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Enterprise RBAC with scoped grants: User → Role → Department → Project → Site → Module → Feature → Action</p>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Permissions</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{permissions.length}</p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">across {Object.keys(permissionsByModule).length} modules</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Roles</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{roles.length}</p>
+                <p className="text-xs text-emerald-600 mt-1">{roles.filter(r => r.isSystem).length} system</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Assignments</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{userRoleAssignments.length}</p>
+                <p className="text-xs text-emerald-600 mt-1">{userRoleAssignments.filter(a => a.isActive).length} active</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">SoD Rules</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{sodRules.length}</p>
+                <p className="text-xs text-red-600 mt-1">{sodRules.filter(r => r.severity === 'block').length} blocking</p>
+              </div>
+            </div>
+
+            {/* Roles Overview */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">System Roles</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {roles.slice(0, 8).map(role => (
+                  <div key={role.id} className="px-4 py-3 flex items-center gap-4 hover:bg-[var(--surface-hover)]">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                      role.isSystem ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      <Icon name="users" size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{role.name}</p>
+                      <p className="text-xs text-[var(--text-tertiary)] truncate">{role.description}</p>
+                    </div>
+                    <div className="hidden sm:block text-right">
+                      <p className="text-xs font-tabular text-[var(--text-secondary)]">{role.userCount} users</p>
+                      <p className="text-xs text-[var(--text-tertiary)]">{role.permissionCount} perms</p>
+                    </div>
+                    {role.isSystem && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">System</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Protocol Control Points */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                <Shield size={16} className="text-[var(--brand-primary)]" />
+                Protocol Control Points
+              </h3>
+              <div className="space-y-3">
+                {iamProtocolControlPoints.map(cp => (
+                  <div key={cp.id} className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border)]">
+                    <span className="text-xs font-mono font-medium text-[var(--brand-primary)] shrink-0">{cp.id}</span>
+                    <StatusChip status={cp.stage} variant="info" />
+                    <span className="text-sm text-[var(--text-primary)] flex-1">{cp.control}</span>
+                    <StatusChip status={cp.status} variant="warning" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PERMISSIONS TAB */}
+        {activeTab === 'permissions' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Permission Registry</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{permissions.length} permissions across {Object.keys(permissionsByModule).length} modules</p>
+            </div>
+
+            {Object.entries(permissionsByModule).map(([module, perms]) => (
+              <div key={module} className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+                <div className="p-4 border-b border-[var(--border)] bg-[var(--surface-hover)]">
+                  <h3 className="font-semibold text-sm text-[var(--text-primary)] capitalize">{module} Module</h3>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Permission Key</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Feature</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Action</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Description</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Scope</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Sensitive</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">PC Stage</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--divider)]">
+                    {perms.map(perm => (
+                      <tr key={perm.key} className="hover:bg-[var(--surface-hover)]">
+                        <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{perm.key}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{perm.feature}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{perm.action}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{perm.description}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{perm.defaultScope}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {perm.isSensitive ? (
+                            <AlertCircle size={14} className="text-amber-500 mx-auto" />
+                          ) : (
+                            <span className="text-[var(--text-disabled)]">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {perm.pcStage ? (
+                            <StatusChip status={perm.pcStage} variant="info" />
+                          ) : (
+                            <span className="text-[var(--text-disabled)]">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ROLES TAB */}
+        {activeTab === 'roles' && !showRoleDetail && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-[var(--text-primary)]">Roles</h1>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">{roles.length} roles · {roles.filter(r => r.isSystem).length} system roles</p>
+              </div>
+              <button className="px-4 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg font-medium hover:bg-[var(--brand-primary-hover)]">
+                + New Role
+              </button>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Code</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Role Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Description</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Max Scope</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Users</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Permissions</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {roles.map(role => (
+                    <tr key={role.id} className="hover:bg-[var(--surface-hover)] cursor-pointer" onClick={() => { setSelectedRole(role); setShowRoleDetail(true); }}>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{role.code}</td>
+                      <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{role.name}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{role.description}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{role.maxScope}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-primary)]">{role.userCount}</td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-primary)]">{role.permissionCount}</td>
+                      <td className="px-4 py-3 text-center">
+                        {role.isSystem ? (
+                          <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">System</span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">Custom</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ROLE DETAIL */}
+        {activeTab === 'roles' && showRoleDetail && selectedRole && (
+          <div className="space-y-6">
+            <button onClick={() => setShowRoleDetail(false)} className="flex items-center gap-2 text-sm text-[var(--brand-primary)] hover:underline">
+              <ChevronLeft size={16} /> Back to roles
+            </button>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)]">{selectedRole.name}</h2>
+                    {selectedRole.isSystem && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">System Role</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-[var(--text-secondary)]">{selectedRole.code} · {selectedRole.description}</p>
+                </div>
+                <button className="px-3 py-1.5 text-xs bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-primary-hover)]">
+                  Edit Permissions
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Max Scope</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1 capitalize">{selectedRole.maxScope}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Users Assigned</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{selectedRole.userCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Permissions</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{selectedRole.permissionCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Status</p>
+                  <p className="text-sm font-medium text-emerald-600 mt-1">Active</p>
+                </div>
+              </div>
+
+              {/* Role Permissions */}
+              <div className="mt-6 pt-6 border-t border-[var(--divider)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Permission Matrix</h3>
+                <div className="space-y-2">
+                  {getRolePermissions(selectedRole.id).slice(0, 20).map(rp => {
+                    const perm = permissions.find(p => p.key === rp.permissionKey);
+                    return (
+                      <div key={rp.permissionKey} className="flex items-center gap-3 p-2 rounded-lg bg-[var(--surface-hover)]">
+                        <div className={`w-2 h-2 rounded-full ${rp.effect === 'allow' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                        <span className="text-xs font-mono text-[var(--text-primary)] flex-1">{rp.permissionKey}</span>
+                        <span className="text-xs text-[var(--text-tertiary)]">{perm?.description}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface)] text-[var(--text-secondary)]">{rp.scopeType}</span>
+                      </div>
+                    );
+                  })}
+                  {getRolePermissions(selectedRole.id).length > 20 && (
+                    <p className="text-xs text-[var(--text-tertiary)] text-center py-2">
+                      + {getRolePermissions(selectedRole.id).length - 20} more permissions
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ASSIGNMENTS TAB */}
+        {activeTab === 'assignments' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">User Role Assignments</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{userRoleAssignments.length} assignments · Scoped by company/project/site</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">User</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Role</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Scope</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Scope Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Valid From</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Assigned By</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {userRoleAssignments.map(assign => (
+                    <tr key={assign.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white text-xs font-bold">
+                            {assign.userName.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <span className="text-sm text-[var(--text-primary)]">{assign.userName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{assign.roleName}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)] capitalize">{assign.scopeType}</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{assign.scopeName}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{new Date(assign.validFrom).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{assign.assignedByName}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={assign.isActive ? 'Active' : 'Inactive'} variant={assign.isActive ? 'success' : 'neutral'} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* SOD RULES TAB */}
+        {activeTab === 'sod' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Segregation of Duties Rules</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{sodRules.length} SoD rules · Prevents conflicts of interest</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Code</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Description</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Permission A</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Permission B</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Scope</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Severity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {sodRules.map(rule => (
+                    <tr key={rule.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{rule.code}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{rule.description}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-tertiary)]">{rule.permissionA}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-tertiary)]">{rule.permissionB}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{rule.scope}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={rule.severity} variant={rule.severity === 'block' ? 'error' : 'warning'} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* FIELD POLICIES TAB */}
+        {activeTab === 'policies' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Field-Level Policies</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{fieldPolicies.length} field masking policies · Protects sensitive data</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Entity</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Field</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">View Permission</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Edit Permission</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Mask Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {fieldPolicies.map(policy => (
+                    <tr key={policy.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{policy.entity}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{policy.field}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-tertiary)]">{policy.permissionKeyToView}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-tertiary)]">{policy.permissionKeyToEdit}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                          policy.maskType === 'full' ? 'bg-red-100 text-red-700' :
+                          policy.maskType === 'partial' ? 'bg-amber-100 text-amber-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>{policy.maskType}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Record Rules */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Record-Level Rules</h3>
+              </div>
+              <div className="divide-y divide-[var(--divider)]">
+                {recordRules.map(rule => (
+                  <div key={rule.id} className="px-4 py-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{rule.entity}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">{rule.ruleType}</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-tertiary)]">{rule.description}</p>
+                    <p className="text-xs font-mono text-[var(--text-tertiary)] mt-1 bg-[var(--surface-hover)] p-2 rounded">{rule.expression}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* EFFECTIVE ACCESS TAB */}
+        {activeTab === 'effective' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Effective Permission Explorer</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">View effective permissions for any user · Shows source role and scope</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Select User</h3>
+              <select className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-primary)]">
+                <option value="">Choose a user...</option>
+                {userRoleAssignments.map(a => (
+                  <option key={a.userId} value={a.userId}>{a.userName}</option>
+                ))}
+              </select>
+              <p className="text-xs text-[var(--text-tertiary)] mt-2">Select a user to view their effective permissions across all roles and scopes</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ===== AUDIT DASHBOARD (Part 01 — DS-32 Technical Console) =====
 function AuditDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -4027,6 +4533,7 @@ function AppLayout() {
             <Route path="/_tech/cicd" element={<CICDDashboard />} />
             <Route path="/_tech/core" element={<CoreServicesDashboard />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
+            <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

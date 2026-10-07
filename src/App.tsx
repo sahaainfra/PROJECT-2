@@ -55,6 +55,7 @@ import { RulesModule } from './components/RulesModule';
 import { RtModule } from './components/RtModule';
 import { IntgModule } from './components/IntgModule';
 import { DevApiModule } from './components/DevApiModule';
+import { DesignSystemModule } from './components/DesignSystemModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -79,6 +80,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.rt': true,
   'ff.intg': true,
   'ff.devapi': true,
+  'ff.ds': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1371,6 +1373,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Developer API
+          </button>
+          <button
+            onClick={() => navigate('/_tech/design-system')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Design System
           </button>
           <button
             onClick={() => navigate('/admin/intg')}
@@ -4620,6 +4628,7 @@ function AppLayout() {
             <Route path="/_tech/obs" element={<ObsModule />} />
             <Route path="/_tech/evbus" element={<EvBusModule />} />
             <Route path="/_tech/devapi" element={<DevApiModule />} />
+            <Route path="/_tech/design-system" element={<DesignSystemModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

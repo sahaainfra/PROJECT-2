@@ -29,6 +29,14 @@ import {
   serviceHooks, outboxMetrics, jobMetrics, numberSeriesStatus,
   errorCodes, protocolControlPoints, sampleModuleActions
 } from './data/core';
+import {
+  companies, groups, legalEntities, branches, businessUnits, divisions,
+  departments, costCentres, profitCentres, projects, sites, geofences,
+  allocations, statusMappings, projectLifecycleOrder, siteLifecycleOrder,
+  getProjectStatusVariant, getSiteStatusVariant, getNextProjectStatuses,
+  getNextSiteStatuses, protocolControlPoints as orgProtocolControlPoints,
+  type Project, type Site, type ProjectAllocation
+} from './data/org';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -39,6 +47,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.preview': true,
   'ff.cicd': true,
   'ff.core': true,
+  'ff.org': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -1307,6 +1316,12 @@ function TechConsoleBaseline() {
             className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
           >
             Core Services
+          </button>
+          <button
+            onClick={() => navigate('/admin/org')}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+          >
+            Organization
           </button>
           <button
             onClick={() => navigate('/preview')}
@@ -2855,6 +2870,479 @@ async function createSample(ctx: RequestContext, input: SampleInput) {
   );
 }
 
+// ===== ORGANIZATION MODULE (Part 05 — Enterprise Hierarchy) =====
+function OrganizationModule() {
+  const [activeTab, setActiveTab] = useState<'explorer' | 'projects' | 'sites' | 'allocations' | 'geofences'>('explorer');
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [showProjectDetail, setShowProjectDetail] = useState(false);
+  const [showSiteDetail, setShowSiteDetail] = useState(false);
+
+  const tabs = [
+    { id: 'explorer', label: 'Org Explorer', icon: 'sitemap' },
+    { id: 'projects', label: 'Projects', icon: 'building' },
+    { id: 'sites', label: 'Sites', icon: 'map-pin' },
+    { id: 'allocations', label: 'Allocations', icon: 'users' },
+    { id: 'geofences', label: 'Geofences', icon: 'map' },
+  ];
+
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-56 border-r border-[var(--border)] bg-[var(--sidebar-bg)] p-3 overflow-y-auto shrink-0 hidden lg:block">
+        <div className="mb-4 px-2">
+          <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Administration</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-1">Organization · ff.org</p>
+        </div>
+        <nav className="space-y-1">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+                activeTab === t.id
+                  ? 'bg-[var(--brand-primary)] text-white font-medium'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+              }`}
+            >
+              <Icon name={t.icon} size={16} />
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Mobile tab selector */}
+        <div className="lg:hidden mb-4">
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value as any)}
+            className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-primary)]"
+          >
+            {tabs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+
+        {/* ORG EXPLORER TAB */}
+        {activeTab === 'explorer' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Organization Explorer</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Enterprise hierarchy: Company → Group → Legal Entity → Branch → Department → Project → Site</p>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Companies</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{companies.length}</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Projects</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{projects.length}</p>
+                <p className="text-xs text-emerald-600 mt-1">{projects.filter(p => p.lifecycleStatus === 'Active').length} active</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Sites</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{sites.length}</p>
+                <p className="text-xs text-emerald-600 mt-1">{sites.filter(s => s.status === 'Active').length} active</p>
+              </div>
+              <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs text-[var(--text-tertiary)]">Allocations</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{allocations.length}</p>
+              </div>
+            </div>
+
+            {/* Hierarchy Tree */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4">Enterprise Hierarchy</h3>
+              <div className="space-y-2 text-sm">
+                {companies.map(company => (
+                  <div key={company.id}>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--surface-hover)] font-medium">
+                      <Icon name="building" size={16} className="text-[var(--brand-primary)]" />
+                      <span>{company.name}</span>
+                      <span className="text-xs text-[var(--text-tertiary)] ml-auto">{company.code}</span>
+                    </div>
+                    <div className="ml-6 mt-2 space-y-2">
+                      {groups.filter(g => g.companyId === company.id).map(group => (
+                        <div key={group.id}>
+                          <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--surface-hover)]">
+                            <Icon name="folder" size={14} className="text-[var(--text-tertiary)]" />
+                            <span className="text-[var(--text-secondary)]">{group.name}</span>
+                          </div>
+                          <div className="ml-6 mt-1 space-y-1">
+                            {businessUnits.filter(bu => bu.companyId === company.id).map(bu => (
+                              <div key={bu.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--surface-hover)]">
+                                <Icon name="briefcase" size={14} className="text-[var(--text-tertiary)]" />
+                                <span className="text-[var(--text-secondary)]">{bu.name}</span>
+                                <span className="text-xs text-[var(--text-tertiary)] ml-auto">Head: {bu.headUserName}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Protocol Control Points */}
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                <Shield size={16} className="text-[var(--brand-primary)]" />
+                Protocol Control Points
+              </h3>
+              <div className="space-y-3">
+                {orgProtocolControlPoints.map(cp => (
+                  <div key={cp.id} className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border)]">
+                    <span className="text-xs font-mono font-medium text-[var(--brand-primary)] shrink-0">{cp.id}</span>
+                    <StatusChip status={cp.stage} variant="info" />
+                    <span className="text-sm text-[var(--text-primary)] flex-1">{cp.control}</span>
+                    <StatusChip status={cp.status} variant="warning" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PROJECTS TAB */}
+        {activeTab === 'projects' && !showProjectDetail && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-[var(--text-primary)]">Projects</h1>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">Project lifecycle: Proposed → Tendering → Awarded → Mobilisation → Active → On Hold → Substantially Complete → DLP → Closed → Archived</p>
+              </div>
+              <button className="px-4 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg font-medium hover:bg-[var(--brand-primary-hover)]">
+                + New Project
+              </button>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Code</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Project Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Client</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Type</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Project Manager</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Value</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Dates</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {projects.map(project => (
+                    <tr key={project.id} className="hover:bg-[var(--surface-hover)] cursor-pointer" onClick={() => { setSelectedProject(project); setShowProjectDetail(true); }}>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{project.code}</td>
+                      <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{project.name}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{project.clientName}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)] capitalize">{project.projectType}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={project.lifecycleStatus} variant={getProjectStatusVariant(project.lifecycleStatus)} />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{project.projectManagerName}</td>
+                      <td className="px-4 py-3 text-right font-tabular text-xs text-[var(--text-primary)]">
+                        {(project.contractValue / 10000000).toFixed(2)} Cr
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">
+                        {new Date(project.startDate).toLocaleDateString()} → {new Date(project.plannedFinish).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* PROJECT DETAIL */}
+        {activeTab === 'projects' && showProjectDetail && selectedProject && (
+          <div className="space-y-6">
+            <button onClick={() => setShowProjectDetail(false)} className="flex items-center gap-2 text-sm text-[var(--brand-primary)] hover:underline">
+              <ChevronLeft size={16} /> Back to projects
+            </button>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)]">{selectedProject.name}</h2>
+                    <StatusChip status={selectedProject.lifecycleStatus} variant={getProjectStatusVariant(selectedProject.lifecycleStatus)} />
+                  </div>
+                  <p className="text-sm text-[var(--text-secondary)]">{selectedProject.code} · {selectedProject.clientName}</p>
+                </div>
+                <div className="flex gap-2">
+                  {getNextProjectStatuses(selectedProject.lifecycleStatus).map(nextStatus => (
+                    <button key={nextStatus} className="px-3 py-1.5 text-xs bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-primary-hover)]">
+                      Move to {nextStatus}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Project Type</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] capitalize mt-1">{selectedProject.projectType}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Contract Mode</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{selectedProject.contractMode}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Contract Value</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] font-tabular mt-1">
+                    {(selectedProject.contractValue / 10000000).toFixed(2)} Cr
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Location</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{selectedProject.district}, {selectedProject.stateCode}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Start Date</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{new Date(selectedProject.startDate).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Planned Finish</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{new Date(selectedProject.plannedFinish).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Project Manager</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{selectedProject.projectManagerName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--text-tertiary)]">Business Unit</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mt-1">{selectedProject.businessUnitName}</p>
+                </div>
+              </div>
+
+              {/* Sites for this project */}
+              <div className="mt-6 pt-6 border-t border-[var(--divider)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Sites</h3>
+                <div className="space-y-2">
+                  {sites.filter(s => s.projectId === selectedProject.id).map(site => (
+                    <div key={site.id} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--surface-hover)]">
+                      <Icon name="map-pin" size={16} className="text-[var(--text-tertiary)]" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">{site.name}</p>
+                        <p className="text-xs text-[var(--text-tertiary)]">{site.siteCode} · {site.siteManagerName}</p>
+                      </div>
+                      <StatusChip status={site.status} variant={getSiteStatusVariant(site.status)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Allocations for this project */}
+              <div className="mt-6 pt-6 border-t border-[var(--divider)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Team Allocations</h3>
+                <div className="space-y-2">
+                  {allocations.filter(a => a.projectId === selectedProject.id).map(alloc => (
+                    <div key={alloc.id} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--surface-hover)]">
+                      <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white text-xs font-bold">
+                        {alloc.userName.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">{alloc.userName}</p>
+                        <p className="text-xs text-[var(--text-tertiary)]">{alloc.roleOnProject} · {alloc.allocationPercent}%</p>
+                      </div>
+                      <span className="text-xs text-[var(--text-tertiary)]">
+                        From {new Date(alloc.fromDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SITES TAB */}
+        {activeTab === 'sites' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Sites</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Site lifecycle: Planned → Mobilising → Active → Suspended → Demobilising → Closed</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Code</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Site Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Project</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Site Manager</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Location</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Geofence</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {sites.map(site => (
+                    <tr key={site.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--brand-primary)]">{site.siteCode}</td>
+                      <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{site.name}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{site.projectName}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={site.status} variant={getSiteStatusVariant(site.status)} />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{site.siteManagerName}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{site.address}</td>
+                      <td className="px-4 py-3 text-center">
+                        {site.geofenceId ? (
+                          <CheckCircle2 size={16} className="text-emerald-500 mx-auto" />
+                        ) : (
+                          <XCircle size={16} className="text-[var(--text-disabled)] mx-auto" />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ALLOCATIONS TAB */}
+        {activeTab === 'allocations' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Project Allocations</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">User assignments to projects and sites with role and allocation percentage</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">User</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Project</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Site</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Role</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Allocation %</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">From Date</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {allocations.map(alloc => (
+                    <tr key={alloc.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white text-xs font-bold">
+                            {alloc.userName.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <span className="text-sm text-[var(--text-primary)]">{alloc.userName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{alloc.projectName}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{alloc.siteName || '—'}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{alloc.roleOnProject}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm font-tabular font-medium text-[var(--text-primary)]">{alloc.allocationPercent}%</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{new Date(alloc.fromDate).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusChip status={alloc.isActive ? 'Active' : 'Inactive'} variant={alloc.isActive ? 'success' : 'neutral'} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* GEOFENCES TAB */}
+        {activeTab === 'geofences' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Site Geofences</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Geofence definitions for attendance validation · Circle or polygon · Versioned and audited</p>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Site</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Type</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Location</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Radius</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)]">Tolerance</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">Version</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Valid From</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)]">Approved By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {geofences.map(geo => {
+                    const site = sites.find(s => s.id === geo.siteId);
+                    return (
+                      <tr key={geo.id} className="hover:bg-[var(--surface-hover)]">
+                        <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{site?.name || '—'}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)] capitalize">{geo.type}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-tertiary)] font-tabular">
+                          {geo.type === 'circle' ? `${geo.centerLat?.toFixed(4)}, ${geo.centerLng?.toFixed(4)}` : 'Polygon'}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs font-tabular text-[var(--text-secondary)]">
+                          {geo.radiusM ? `${geo.radiusM}m` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs font-tabular text-[var(--text-secondary)]">
+                          ±{geo.accuracyToleranceM}m
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-sm font-bold text-[var(--brand-primary)]">v{geo.version}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{new Date(geo.validFrom).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{geo.approvedByName}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Geofence Change History</h3>
+              <div className="space-y-2">
+                {geofences.map(geo => {
+                  const site = sites.find(s => s.id === geo.siteId);
+                  return (
+                    <div key={geo.id} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--surface-hover)]">
+                      <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white shrink-0">
+                        <Icon name="map-pin" size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">{site?.name} — v{geo.version}</p>
+                        <p className="text-xs text-[var(--text-tertiary)] mt-1">{geo.reason}</p>
+                        <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                          Approved by {geo.approvedByName} on {new Date(geo.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ===== AUDIT DASHBOARD (Part 01 — DS-32 Technical Console) =====
 function AuditDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -3538,6 +4026,7 @@ function AppLayout() {
             <Route path="/_tech/audit" element={<AuditDashboard />} />
             <Route path="/_tech/cicd" element={<CICDDashboard />} />
             <Route path="/_tech/core" element={<CoreServicesDashboard />} />
+            <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

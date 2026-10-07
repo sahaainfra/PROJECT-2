@@ -87,6 +87,12 @@ export const navigationRegistry: NavGroup[] = [
       { id: 'report-catalog', group: 'reports', label: 'Report Catalog', iconKey: 'file-bar-chart', route: '/reports/catalog', permissionKey: 'rpt.catalog.view', featureFlag: 'ff.pgm', sortOrder: 1, keywords: ['report', 'export'], isActive: true } as NavEntry,
     ],
   },
+  {
+    id: 'field-operations', label: 'Field Operations', iconKey: 'cloud-off', sortOrder: 80,
+    entries: [
+      { id: 'offline-sync', group: 'field-operations', label: 'Offline Sync', iconKey: 'cloud-off', route: '/field/offline', permissionKey: 'offline.device.view', featureFlag: 'ff.offline', sortOrder: 0, keywords: ['offline', 'sync', 'field', 'mobile', 'conflict', 'command'], isActive: true } as NavEntry,
+    ],
+  },
 ];
 
 export function getAllNavEntries(): NavEntry[] {

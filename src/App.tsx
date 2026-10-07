@@ -58,6 +58,7 @@ import { DevApiModule } from './components/DevApiModule';
 import { DesignSystemModule } from './components/DesignSystemModule';
 import { DashModule } from './components/DashModule';
 import { RspModule } from './components/RspModule';
+import { OfflineModule } from './components/OfflineModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -85,6 +86,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.ds': true,
   'ff.dash': true,
   'ff.rsp': true,
+  'ff.offline': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -4635,6 +4637,7 @@ function AppLayout() {
             <Route path="/_tech/design-system" element={<DesignSystemModule />} />
             <Route path="/home/dash" element={<DashModule />} />
             <Route path="/home/rsp" element={<RspModule />} />
+            <Route path="/field/offline" element={<OfflineModule />} />
             <Route path="/admin/org" element={<OrganizationModule />} />
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />

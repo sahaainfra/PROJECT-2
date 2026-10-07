@@ -48,6 +48,7 @@ import { SecBaseModule } from './components/SecBaseModule';
 import { IdSodModule } from './components/IdSodModule';
 import { ObsModule } from './components/ObsModule';
 import { EvBusModule } from './components/EvBusModule';
+import { WfModule } from './components/WfModule';
 
 // ===== FEATURE FLAGS (ff.pgm) =====
 const featureFlags: Record<string, boolean> = {
@@ -65,6 +66,7 @@ const featureFlags: Record<string, boolean> = {
   'ff.idsod': true,
   'ff.obs': true,
   'ff.evbus': true,
+  'ff.wf': true,
 };
 
 function isEnabled(flagKey: string): boolean {
@@ -4579,6 +4581,7 @@ function AppLayout() {
             <Route path="/admin/iam" element={<IAMModule />} />
             <Route path="/admin/audit_sec" element={<AuditSecModule />} />
             <Route path="/admin/idsod" element={<IdSodModule />} />
+            <Route path="/workflow" element={<WfModule />} />
             <Route path="/preview" element={<PreviewLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

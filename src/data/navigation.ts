@@ -24,7 +24,10 @@ export interface NavGroup {
 export const navigationRegistry: NavGroup[] = [
   {
     id: 'home', label: 'Home', iconKey: 'home', sortOrder: 0,
-    entries: [{ id: 'launchpad', group: 'home', label: 'Launchpad', iconKey: 'grid', route: '/', permissionKey: 'shell.home.view', featureFlag: 'ff.pgm', sortOrder: 0, keywords: ['home', 'dashboard'], isActive: true }],
+    entries: [
+      { id: 'launchpad', group: 'home', label: 'Launchpad', iconKey: 'grid', route: '/', permissionKey: 'shell.home.view', featureFlag: 'ff.pgm', sortOrder: 0, keywords: ['home', 'dashboard'], isActive: true },
+      { id: 'my-approvals', group: 'home', label: 'My Approvals', iconKey: 'inbox', route: '/workflow', permissionKey: 'wf.task.act', featureFlag: 'ff.wf', sortOrder: 1, keywords: ['workflow', 'approval', 'inbox', 'task'], isActive: true, badge: '3' } as NavEntry,
+    ],
   },
   {
     id: 'project-management', label: 'Project Management', iconKey: 'folder', sortOrder: 10,
